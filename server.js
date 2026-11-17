@@ -9,7 +9,40 @@ const io = new Server(server, { maxHttpBufferSize: 2e6 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const accounts = {};
+const accounts = {
+    'dm': {
+        password: '1234',
+        character: {
+            name: 'Dungeon Master', race: 'Creator', charClass: 'Game Master', height: 'Omnipresent',
+            portrait: '', skills: 'World Shaping, Rule Enforcement', ultimate: 'Divine Intervention',
+            background: 'ผู้คุมชะตากรรมของทุกสรรพสิ่งในสมรภูมิ',
+            pros: 'ควบคุมกฎทั้งหมด', cons: 'ต้องคอยระวังผู้เล่นออกนอกลู่นอกทาง',
+            stats: { STR: 20, DEX: 20, CON: 20, INT: 20, WIS: 20, CHA: 20 },
+            hp: 999, maxHp: 999, sp: 999, maxSp: 999,
+            weapon: 'Staff of Fate', armor: 'Robe of Eternity',
+            inventory: [{ name: 'D&D Rulebook', qty: 1 }, { name: 'Master Dice Set', qty: 7 }]
+        }
+    },
+    'player1': {
+        password: '1234',
+        character: {
+            name: 'เป็ด', race: 'มังกร', charClass: 'ไวกิ้ง', height: '90cm',
+            portrait: '', skills: 'fireball, firewall',
+            ultimate: 'กลายร่างเป็นมังกร "เงื่อนไขต้องตายแล้วเกิดใหม่ถึงจะใช้อัลติได้" บังคับแปลงร่างอัตโนมัติ',
+            background: 'โดนขับไล่ออกจากเผ่ามังกรเนื่องจากเกิดเป็นเป็ดเพราะแม่เป็นมังกรพ่อเป็นเป็ด',
+            pros: 'จุดไฟติด 100% พูดได้ทุกภาษา', cons: 'พูดภาษามังกรไม่ได้',
+            stats: { STR: 10, DEX: 13, CON: 14, INT: 12, WIS: 8, CHA: 15 },
+            hp: 10, maxHp: 10, sp: 10, maxSp: 10,
+            weapon: 'ขวาน', armor: 'เกราะ',
+            inventory: [
+                { name: 'อาหารแห้ง', qty: 10 },
+                { name: 'ไฟแช็ก', qty: 1 },
+                { name: 'เชือก', qty: 1 },
+                { name: 'เงิน', qty: 10 }
+            ]
+        }
+    }
+};
 const rooms = {};
 
 function genCode() {
