@@ -50,6 +50,7 @@ const mod = (score) => Math.floor(((score || 10) - 10) / 2);
 const XP_TABLE = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
 const levelFromXp = (xp) => { let l = 1; for (let i = 0; i < XP_TABLE.length; i++) if (xp >= XP_TABLE[i]) l = i + 1; return l; };
 const ITEM_TYPES = ['consumable', 'weapon', 'armor', 'shield', 'misc'];
+const MAX_PLAYERS = 8;
 
 function hashPw(pw, salt = crypto.randomBytes(16).toString('hex')) {
     return { salt, hash: crypto.scryptSync(pw, salt, 64).toString('hex') };
@@ -60,31 +61,11 @@ function checkPw(pw, u) {
 }
 
 // ---- dice expressions: "2d6+3", "d20", "1d8-1"
-function parseDice(expr) {
-    expr = String(expr || '').replace(/\s+/g, '').toLowerCase();
-    if (!expr || expr.length > 60) return null;
-    if (!/^[+-]?(\d*d\d+|\d+)([+-](\d*d\d+|\d+))*$/.test(expr)) return null;
-    const terms = []; const re = /([+-]?)(\d*d\d+|\d+)/g; let m, dice = 0;
-    while ((m = re.exec(expr))) {
-        const sign = m[1] === '-' ? -1 : 1;
-        if (m[2].includes('d')) {
-            let [n, s] = m[2].split('d'); n = parseInt(n || '1', 10); s = parseInt(s, 10);
-            if (n < 1 || n > 50 || s < 2 || s > 1000) return null;
-            dice += n; terms.push({ sign, n, s });
-        } else terms.push({ sign, c: parseInt(m[2], 10) });
-    }
-    return dice > 60 ? null : terms;
-}
-function rollExpr(expr) {
-    const terms = parseDice(expr); if (!terms) return null;
-    let total = 0, modSum = 0; const rolls = []; let sides = 0;
-    for (const t of terms) {
-        if (t.c !== undefined) { total += t.sign * t.c; modSum += t.sign * t.c; continue; }
-        sides = sides || t.s;
-        for (let i = 0; i < t.n; i++) { const r = rand(t.s); rolls.push({ s: t.s, v: r, neg: t.sign < 0 }); total += t.sign * r; }
-    }
-    return { total, rolls, mod: modSum, sides };
-}
+// rand() uses crypto.randomInt: a cryptographically secure, unbiased uniform integer
+// (every face of a dN has exactly 1/N chance). Verified by test/dice.test.js.
+const DiceMath = require('./public/dice-math.js');
+const parseDice = DiceMath.parse;
+const rollExpr = (expr) => DiceMath.roll(expr, rand);
 const validExpr = (e) => { const s = str(e, 30).replace(/\s+/g, ''); return s && parseDice(s) ? s : ''; };
 
 // ---- items
@@ -303,8 +284,15 @@ function roomView(room, me) {
         dm: { key: room.dm, name: dmU?.username || room.dm, online: online.has(room.dm) },
         party, monsters,
         combat: { ...room.combat, order },
+        action: actionView(room),
         event: room.event, shopOpen: room.shopOpen, lockTurns: room.lockTurns,
         shop: (isDM || room.shopOpen) ? (dmU?.shop || []) : [], sellRate: dmU?.sellRate ?? 0.5,
+        shopName: dmU?.shopName || 'ร้านค้าของพ่อค้า',
+        haggles: Object.entries(room.haggles || {}).filter(([k]) => isDM || k === me).map(([k, hg]) => {
+            const it = dmU?.shop.find(i => i.id === hg.itemId);
+            return { key: k, name: displayName(k), item: it ? { id: it.id, name: it.name, icon: it.icon, price: it.price } : null, ...hg };
+        }),
+        maxPlayers: MAX_PLAYERS,
         bestiary: isDM ? (dmU?.bestiary || []) : undefined,
         logs: room.logs.filter(l => !l.secret || isDM || l.by === me).slice(-120),
     };
@@ -350,6 +338,75 @@ function rollInitPlayer(room, k) {
     room.init[k] = v; return { r, v };
 }
 function rollInitMonster(m) { const r = rand(20); m.initiative = r + (m.initMod || 0); return { r, v: m.initiative }; }
+
+function advanceTurn(room, dir) {
+    const c = room.combat; if (!c.active || !c.order.length) return;
+    room.action = null;
+    for (let i = 0; i < c.order.length; i++) {
+        c.turn += dir;
+        if (c.turn >= c.order.length) { c.turn = 0; c.round++; }
+        if (c.turn < 0) { c.turn = c.order.length - 1; c.round = Math.max(1, c.round - 1); }
+        const o = c.order[c.turn];
+        if (o.type === 'monster' && room.monsters.find(m => m.id === o.id)?.down) continue;
+        if (o.type === 'player' && !room.members.includes(o.id)) continue;
+        break;
+    }
+    const o = c.order[c.turn];
+    sys(room, `▶ รอบที่ ${c.round} — ตาของ ${o.type === 'player' ? displayName(o.id) : room.monsters.find(m => m.id === o.id)?.name}`, 'turn');
+}
+
+// ---- step-by-step attack: d20 to hit vs DC, then damage dice (default d4)
+const fighterName = (room, o) => o.type === 'player' ? displayName(o.id) : (room.monsters.find(m => m.id === o.id)?.name || '???');
+function actionView(room) {
+    const a = room.action; if (!a) return null;
+    const v = { ...a, actorName: fighterName(room, a.actor), targetName: fighterName(room, a.target) };
+    if (a.actor.type === 'monster') v.actorIcon = room.monsters.find(m => m.id === a.actor.id)?.icon;
+    if (a.target.type === 'monster') v.targetIcon = room.monsters.find(m => m.id === a.target.id)?.icon;
+    return v;
+}
+function attackRollHit(room, u, isDM) {
+    const a = room.action;
+    const sign = a.bonus ? (a.bonus > 0 ? '+' + a.bonus : String(a.bonus)) : '';
+    const res = rollExpr('1d20' + sign);
+    const d = res.rolls[0].v;
+    const ok = d === 20 || (d !== 1 && res.total >= a.dc);
+    a.hit = { d, total: res.total, ok, nat20: d === 20, nat1: d === 1 };
+    a.stage = ok ? 'roll_dmg' : 'done';
+    const monster = a.actor.type === 'monster' ? room.monsters.find(m => m.id === a.actor.id) : null;
+    const e = addLog(room, {
+        kind: 'roll', by: u.key, name: fighterName(room, a.actor), icon: monster?.icon, isDM,
+        label: '1d20' + sign, rolls: res.rolls, mod: res.mod, total: res.total, sides: 20, mode: 'NORMAL',
+        reason: `โจมตี ${fighterName(room, a.target)} ด้วย ${a.using} · ต้องได้ ${a.dc}+`, secret: false,
+        nat20: d === 20, nat1: d === 1, note: ok ? (d === 20 ? 'NAT 20 โดนแน่นอน!' : 'โดน!') : (d === 1 ? 'NAT 1 พลาดแน่นอน' : 'พลาด ไม่โดน'),
+    });
+    emitRoll(room, e);
+}
+function attackRollDmg(room, u, isDM) {
+    const a = room.action;
+    const res = rollExpr(a.dmg); const dmg = Math.max(0, res.total);
+    let before, after;
+    if (a.target.type === 'monster') {
+        const m = room.monsters.find(x => x.id === a.target.id);
+        if (m) {
+            before = m.hp; m.hp = Math.max(0, m.hp - dmg); after = m.hp;
+            if (m.hp === 0 && !m.down) { m.down = true; sys(room, `⚔️ ${m.name} ถูกปราบแล้ว!`, 'gold'); }
+        }
+    } else {
+        const ch = U(a.target.id)?.character;
+        if (ch) { before = ch.hp; setPlayerHp(room, a.target.id, ch.hp - dmg); after = ch.hp; }
+    }
+    a.dmgResult = { total: dmg, before, after };
+    a.stage = 'done';
+    const monster = a.actor.type === 'monster' ? room.monsters.find(m => m.id === a.actor.id) : null;
+    const showHp = a.target.type === 'player' || room.monsters.find(m => m.id === a.target.id)?.revealHp;
+    const e = addLog(room, {
+        kind: 'roll', by: u.key, name: fighterName(room, a.actor), icon: monster?.icon, isDM,
+        label: a.dmg, rolls: res.rolls, mod: res.mod, total: dmg, sides: res.sides, mode: 'NORMAL',
+        reason: `ดาเมจใส่ ${fighterName(room, a.target)}`, secret: false, nat20: false, nat1: false,
+        note: before !== undefined ? (showHp ? `HP ${before} → ${after}` : `ทำดาเมจ ${dmg}`) : '',
+    });
+    emitRoll(room, e);
+}
 
 function setPlayerHp(room, k, hp) {
     const ch = U(k).character; const before = ch.hp;
@@ -417,6 +474,8 @@ io.on('connection', (socket) => {
     socket.on('saveCharacter', (d = {}, cb) => {
         const u = me(); if (!u) return fail(cb, 'กรุณาล็อกอิน');
         const creating = !u.character;
+        const inRoom = db.rooms[socket.data.room];
+        if (!creating && inRoom && inRoom.dm !== u.key) return fail(cb, 'ระหว่างอยู่ในห้อง แก้ไขตัวละครไม่ได้ ออกจากห้องแล้วแก้ที่หน้าหลัก');
         if (creating) u.character = newCharacter();
         applyCharEdit(u.character, d, creating);
         if (!u.character.name) u.character.name = u.username;
@@ -473,6 +532,7 @@ io.on('connection', (socket) => {
         if (!room) return fail(cb, 'ไม่พบห้องนี้ ตรวจสอบรหัสอีกครั้ง');
         if (room.dm !== u.key && !room.members.includes(u.key)) {
             if (!u.character) return fail(cb, 'กรุณาสร้างตัวละครก่อนเข้าห้อง');
+            if (room.members.length >= MAX_PLAYERS) return fail(cb, `ห้องนี้เต็มแล้ว (ผู้เล่นสูงสุด ${MAX_PLAYERS} คน)`);
             room.members.push(u.key);
             sys(room, `🛡️ ${u.character.name} เข้าร่วมปาร์ตี้`, 'good');
             if (room.combat.active) { rollInitPlayer(room, u.key); addToCombat(room, 'player', u.key); }
@@ -582,6 +642,7 @@ io.on('connection', (socket) => {
                 break;
             }
             case 'shopDelete': u.shop = u.shop.filter(i => i.id !== item?.id); break;
+            case 'shopName': u.shopName = str(item?.name, 60) || 'ร้านค้าของพ่อค้า'; break;
             case 'sellRate': u.sellRate = Math.max(0, Math.min(1, Number(item?.rate) || 0)); break;
             case 'beastSave': {
                 const b = {
@@ -615,7 +676,8 @@ io.on('connection', (socket) => {
         const myCh = u.character;
         const t = p.type;
 
-        const DM_ONLY = ['REORDER', 'KICK', 'SUMMON', 'MONSTER', 'MONSTER_REMOVE', 'REWARD', 'GIVE_GOLD', 'GIVE_ITEM', 'TAKE_ITEM', 'GIVE_XP',
+        // ผู้เล่นทำได้แค่: ทอยเต๋า (socket 'roll'), โจมตีตามขั้นตอน, ใช้/สวมไอเทม, ซื้อขาย/ต่อราคากับร้านของ DM
+        const DM_ONLY = ['PLAYER', 'HAGGLE_SET', 'HAGGLE_REJECT', 'ATK_APPROVE', 'ATK_REJECT', 'MON_ATTACK','REORDER', 'KICK', 'SUMMON', 'MONSTER', 'MONSTER_REMOVE', 'REWARD', 'GIVE_GOLD', 'GIVE_ITEM', 'TAKE_ITEM', 'GIVE_XP',
             'COMBAT_START', 'COMBAT_NEXT', 'COMBAT_PREV', 'COMBAT_END', 'SET_INIT', 'SET_EVENT', 'CLEAR_EVENT', 'TOGGLE_SHOP', 'TOGGLE_LOCK', 'REST', 'RENAME'];
         if (DM_ONLY.includes(t) && !need(isDM, 'คำสั่งนี้สำหรับ DM เท่านั้น')) return;
         if (!isDM && !need(isMember && myCh, 'คุณไม่ได้อยู่ในปาร์ตี้')) return;
@@ -630,13 +692,13 @@ io.on('connection', (socket) => {
             case 'KICK': {
                 const k = p.key; if (!room.members.includes(k)) return fail(cb, 'ไม่พบผู้เล่น');
                 room.members = room.members.filter(x => x !== k);
-                removeFromCombat(room, 'player', k); delete room.init[k];
+                removeFromCombat(room, 'player', k); delete room.init[k]; if (room.haggles) delete room.haggles[k];
                 for (const s of socketsIn(room.code)) if (s.data.user === k) { s.emit('kicked'); s.leave('room:' + room.code); s.data.room = null; }
                 sys(room, `🚪 ${displayName(k)} ถูกเชิญออกจากห้อง`, 'bad');
                 break;
             }
-            case 'PLAYER': { // hp/sp/status — DM any player, player self
-                const k = isDM ? p.key : u.key; const tu = member(k);
+            case 'PLAYER': { // hp/sp/status — DM only
+                const k = p.key; const tu = member(k);
                 if (!need(tu, 'ไม่พบผู้เล่น')) return;
                 const ch = tu.character;
                 if (p.hpDelta !== undefined) {
@@ -765,22 +827,68 @@ io.on('connection', (socket) => {
                 addLog(room, { kind: 'loot', text: '⚔️ เริ่มการต่อสู้! ทอย Initiative', lines });
                 break;
             }
-            case 'COMBAT_NEXT': case 'COMBAT_PREV': {
-                const c = room.combat; if (!c.active || !c.order.length) break;
-                const dir = t === 'COMBAT_NEXT' ? 1 : -1;
-                for (let i = 0; i < c.order.length; i++) {
-                    c.turn += dir;
-                    if (c.turn >= c.order.length) { c.turn = 0; c.round++; }
-                    if (c.turn < 0) { c.turn = c.order.length - 1; c.round = Math.max(1, c.round - 1); }
-                    const o = c.order[c.turn];
-                    if (o.type === 'monster' && room.monsters.find(m => m.id === o.id)?.down) continue;
-                    break;
-                }
-                const o = c.order[c.turn];
-                sys(room, `▶ รอบที่ ${c.round} — ตาของ ${o.type === 'player' ? displayName(o.id) : room.monsters.find(m => m.id === o.id)?.name}`, 'turn');
+            case 'COMBAT_NEXT': case 'COMBAT_PREV': advanceTurn(room, t === 'COMBAT_NEXT' ? 1 : -1); break;
+            case 'END_TURN': {
+                const cur = room.combat.order[room.combat.turn];
+                if (!need(room.combat.active, 'ยังไม่ได้เริ่มการต่อสู้')) return;
+                if (!need(isDM || (cur?.type === 'player' && cur.id === u.key), 'ยังไม่ถึงตาของคุณ')) return;
+                advanceTurn(room, 1);
                 break;
             }
-            case 'COMBAT_END': room.combat = { active: false, round: 1, turn: 0, order: [] }; sys(room, '🕊️ การต่อสู้สิ้นสุดลง'); break;
+            case 'COMBAT_END': room.combat = { active: false, round: 1, turn: 0, order: [] }; room.action = null; sys(room, '🕊️ การต่อสู้สิ้นสุดลง'); break;
+
+            // ---------- step-by-step attack
+            case 'ATK_DECLARE': { // player: target + weapon/skill, waits for DM
+                const cur = room.combat.order[room.combat.turn];
+                if (!need(!isDM, 'ใช้ปุ่มของมอนสเตอร์แทน')) return;
+                if (!need(room.combat.active && cur?.type === 'player' && cur.id === u.key, 'ยังไม่ถึงตาของคุณ')) return;
+                if (!need(!room.action || room.action.stage === 'done', 'กำลังมีการโจมตีค้างอยู่')) return;
+                const m = room.monsters.find(x => x.id === p.target);
+                if (!need(m && !m.down, 'เลือกศัตรูที่ยังยืนอยู่')) return;
+                const using = str(p.using, 60);
+                if (!need(using, 'เลือกว่าจะโจมตีด้วยอะไร')) return;
+                const st = myCh.stats; const lvl = levelFromXp(myCh.xp);
+                room.action = { id: uid('a'), actor: { type: 'player', id: u.key }, target: { type: 'monster', id: m.id }, using,
+                    bonus: 2 + Math.floor((lvl - 1) / 4) + Math.max(mod(st.STR), mod(st.DEX)), dc: m.ac, dmg: '1d4', stage: 'pending', hit: null, dmgResult: null };
+                sys(room, `🎯 ${myCh.name} จะโจมตี ${m.name} ด้วย ${using} · รอ DM ตั้งเกณฑ์`, 'turn');
+                break;
+            }
+            case 'ATK_APPROVE': {
+                const a = room.action; if (!need(a?.stage === 'pending', 'ไม่มีคำขอโจมตีที่รออยู่')) return;
+                a.dc = int(p.dc, 1, 40, a.dc); a.dmg = validExpr(p.dmg) || '1d4'; a.stage = 'roll_hit';
+                sys(room, `📏 DM ตั้งเกณฑ์: ต้องทอยได้ ${a.dc} ขึ้นไปถึงจะโดน · ดาเมจ ${a.dmg}`, 'gold');
+                break;
+            }
+            case 'ATK_REJECT': {
+                if (!need(room.action, 'ไม่มีการโจมตี')) return;
+                room.action = null; sys(room, '✋ DM ยกเลิกการโจมตีนี้ เลือกใหม่ได้', 'bad');
+                break;
+            }
+            case 'ATK_CANCEL': {
+                const a = room.action; if (!a) break;
+                if (!need(isDM || (a.actor.id === u.key && a.stage === 'pending'), 'ยกเลิกตอนนี้ไม่ได้')) return;
+                room.action = null;
+                break;
+            }
+            case 'MON_ATTACK': { // DM: monster picks a party member and rolls to hit at once
+                const m = room.monsters.find(x => x.id === p.monsterId);
+                if (!need(m && !m.down, 'ไม่พบมอนสเตอร์')) return;
+                const tu = member(p.target); if (!need(tu, 'เลือกผู้เล่นที่จะโจมตี')) return;
+                if (!need(!room.action || room.action.stage === 'done', 'กำลังมีการโจมตีค้างอยู่')) return;
+                room.action = { id: uid('a'), actor: { type: 'monster', id: m.id }, target: { type: 'player', id: tu.key }, using: str(p.using, 60) || 'การโจมตี',
+                    bonus: m.atk || 0, dc: int(p.dc, 1, 40, effectiveAC(tu.character)), dmg: validExpr(p.dmg) || '1d4', stage: 'roll_hit', hit: null, dmgResult: null };
+                attackRollHit(room, u, true);
+                break;
+            }
+            case 'ATK_HIT': case 'ATK_DMG': {
+                const a = room.action;
+                if (!need(a, 'ไม่มีการโจมตี')) return;
+                const mine = a.actor.type === 'player' ? a.actor.id === u.key : isDM;
+                if (!need(mine, 'ยังไม่ถึงตาของคุณ')) return;
+                if (t === 'ATK_HIT') { if (!need(a.stage === 'roll_hit', 'ยังทอยตอนนี้ไม่ได้')) return; attackRollHit(room, u, isDM); }
+                else { if (!need(a.stage === 'roll_dmg', 'ยังทอยดาเมจตอนนี้ไม่ได้')) return; attackRollDmg(room, u, isDM); }
+                break;
+            }
             case 'SET_INIT': {
                 const v = int(p.value, -20, 99, 0);
                 if (p.kind === 'player') room.init[p.id] = v; else { const m = mon(); if (m) m.initiative = v; }
@@ -790,7 +898,10 @@ io.on('connection', (socket) => {
             // ---------- scene
             case 'SET_EVENT': room.event = { name: str(p.name, 80) || 'เหตุการณ์', desc: str(p.desc, 600) }; addLog(room, { kind: 'event', text: room.event.name, desc: room.event.desc }); break;
             case 'CLEAR_EVENT': room.event = null; sys(room, '📜 เหตุการณ์จบลง'); break;
-            case 'TOGGLE_SHOP': room.shopOpen = !room.shopOpen; sys(room, room.shopOpen ? '🏪 ร้านค้าเปิดแล้ว! เข้าไปซื้อของได้ที่แท็บร้านค้า' : '🏪 ร้านค้าปิดแล้ว', 'gold'); break;
+            case 'TOGGLE_SHOP':
+                room.shopOpen = !room.shopOpen; room.haggles = {};
+                sys(room, room.shopOpen ? `🏪 ${dmU.shopName || 'ร้านค้า'} เปิดแล้ว! กดปุ่ม "ร้านค้า" ด้านบนเพื่อเข้าร้าน` : '🏪 ร้านค้าปิดแล้ว', 'gold');
+                break;
             case 'TOGGLE_LOCK': room.lockTurns = !room.lockTurns; sys(room, room.lockTurns ? '🔒 ล็อกการทอยตามเทิร์นระหว่างต่อสู้' : '🔓 ทุกคนทอยได้อิสระ'); break;
             case 'RENAME': room.name = str(p.name, 50) || room.name; break;
             case 'REST': {
@@ -805,17 +916,62 @@ io.on('connection', (socket) => {
                 break;
             }
             // ---------- player economy & inventory
-            case 'BUY': {
+            case 'BUY': case 'HAGGLE_BUY': {
                 if (!need(!isDM, 'DM ซื้อของไม่ได้')) return;
                 if (!need(room.shopOpen, 'ร้านค้ายังไม่เปิด')) return;
-                const it = dmU.shop.find(i => i.id === p.id); if (!need(it, 'ไม่พบสินค้า')) return;
-                const qty = int(p.qty, 1, 99, 1);
+                const hg = t === 'HAGGLE_BUY' ? room.haggles?.[u.key] : null;
+                if (t === 'HAGGLE_BUY' && !need(hg?.stage === 'done', 'ยังต่อราคาไม่เสร็จ')) return;
+                const it = dmU.shop.find(i => i.id === (hg ? hg.itemId : p.id)); if (!need(it, 'ไม่พบสินค้า')) return;
+                const qty = hg ? hg.qty : int(p.qty, 1, 99, 1);
                 if (!need(it.stock === -1 || it.stock >= qty, 'สินค้าไม่พอ')) return;
-                const cost = it.price * qty;
+                const unit = hg ? hg.unitPrice : it.price;
+                const cost = unit * qty;
                 if (!need(myCh.gold >= cost, `เงินไม่พอ (ต้องใช้ ${cost} G)`)) return;
                 myCh.gold -= cost; if (it.stock !== -1) it.stock -= qty;
                 addToInv(myCh, it, qty);
-                addLog(room, { kind: 'shop', text: `🛒 ${myCh.name} ซื้อ ${it.icon} ${it.name} x${qty} (-${cost} G)` });
+                if (hg) delete room.haggles[u.key];
+                addLog(room, { kind: 'shop', text: `🛒 ${myCh.name} ซื้อ ${it.icon} ${it.name} x${qty} (-${cost} G${hg && unit < it.price ? ` ลดจาก ${it.price * qty} G` : ''})` });
+                break;
+            }
+            // ---------- haggling with the merchant: d20 + CHA vs the number the DM sets
+            case 'HAGGLE_REQ': {
+                if (!need(!isDM && room.shopOpen, 'ร้านค้ายังไม่เปิด')) return;
+                const it = dmU.shop.find(i => i.id === p.id); if (!need(it, 'ไม่พบสินค้า')) return;
+                room.haggles = room.haggles || {};
+                if (!need(!room.haggles[u.key] || room.haggles[u.key].stage === 'done', 'คุณกำลังต่อราคาสินค้าอื่นอยู่')) return;
+                room.haggles[u.key] = { id: uid('h'), itemId: it.id, qty: int(p.qty, 1, 99, 1), stage: 'pending',
+                    dc: 12, discount: 20, bonus: mod(myCh.stats.CHA), unitPrice: it.price, result: null };
+                addLog(room, { kind: 'shop', text: `🗣️ ${myCh.name} ขอต่อราคา ${it.icon} ${it.name} · รอพ่อค้า (DM) ตอบ` });
+                break;
+            }
+            case 'HAGGLE_SET': {
+                const hg = room.haggles?.[p.key]; if (!need(hg?.stage === 'pending', 'ไม่มีคำขอต่อราคา')) return;
+                hg.dc = int(p.dc, 1, 40, 12); hg.discount = int(p.discount, 1, 90, 20); hg.stage = 'roll';
+                sys(room, `🗣️ พ่อค้ายอมคุย: ${displayName(p.key)} ต้องทอยได้ ${hg.dc}+ จะได้ลด ${hg.discount}%`, 'gold');
+                break;
+            }
+            case 'HAGGLE_REJECT': {
+                if (room.haggles?.[p.key]) { delete room.haggles[p.key]; sys(room, `🙅 พ่อค้าไม่ยอมต่อราคากับ ${displayName(p.key)}`, 'bad'); }
+                break;
+            }
+            case 'HAGGLE_CANCEL': {
+                const key = isDM ? p.key : u.key;
+                if (room.haggles?.[key]) delete room.haggles[key];
+                break;
+            }
+            case 'HAGGLE_ROLL': {
+                const hg = room.haggles?.[u.key]; if (!need(hg?.stage === 'roll', 'ยังทอยต่อราคาไม่ได้')) return;
+                const it = dmU.shop.find(i => i.id === hg.itemId); if (!need(it, 'สินค้านี้ไม่มีแล้ว')) return;
+                const sign = hg.bonus ? (hg.bonus > 0 ? '+' + hg.bonus : String(hg.bonus)) : '';
+                const res = rollExpr('1d20' + sign); const d = res.rolls[0].v;
+                const okRoll = d === 20 || (d !== 1 && res.total >= hg.dc);
+                hg.unitPrice = okRoll ? Math.max(0, Math.ceil(it.price * (1 - hg.discount / 100))) : it.price;
+                hg.result = { d, total: res.total, ok: okRoll };
+                hg.stage = 'done';
+                const e = addLog(room, { kind: 'roll', by: u.key, name: myCh.name, isDM: false, label: '1d20' + sign, rolls: res.rolls, mod: res.mod, total: res.total,
+                    sides: 20, mode: 'NORMAL', reason: `ต่อราคา ${it.name} (CHA) · ต้องได้ ${hg.dc}+`, secret: false, nat20: d === 20, nat1: d === 1,
+                    note: okRoll ? `ต่อสำเร็จ! เหลือชิ้นละ ${hg.unitPrice} G` : 'ต่อไม่สำเร็จ ราคาเท่าเดิม' });
+                emitRoll(room, e);
                 break;
             }
             case 'SELL': {
@@ -839,24 +995,6 @@ io.on('connection', (socket) => {
                 const it = myCh.inventory.find(i => i.uid === p.uid); if (!need(it, 'ไม่พบไอเทม')) return;
                 if (!need(['weapon', 'armor', 'shield'].includes(it.type), 'ไอเทมนี้สวมใส่ไม่ได้')) return;
                 myCh.equipped[it.type] = myCh.equipped[it.type] === it.uid ? null : it.uid;
-                break;
-            }
-            case 'DROP': {
-                const it = removeFromInv(myCh, p.uid, p.qty || 1);
-                if (it) sys(room, `🗑️ ${myCh.name} ทิ้ง ${it.name} x${it.qty}`);
-                break;
-            }
-            case 'GIVE_TO': {
-                const tu = member(p.to); if (!need(tu && tu.key !== u.key, 'ไม่พบผู้รับ')) return;
-                if (p.gold) {
-                    const a = int(p.gold, 1, 1e7, 0); if (!need(myCh.gold >= a, 'เงินไม่พอ')) return;
-                    myCh.gold -= a; tu.character.gold += a;
-                    sys(room, `🤝 ${myCh.name} ให้เงิน ${a} G แก่ ${tu.character.name}`, 'good');
-                } else {
-                    const it = removeFromInv(myCh, p.uid, p.qty || 1); if (!need(it, 'ไม่พบไอเทม')) return;
-                    addToInv(tu.character, it, it.qty);
-                    sys(room, `🤝 ${myCh.name} ส่ง ${it.icon} ${it.name} x${it.qty} ให้ ${tu.character.name}`, 'good');
-                }
                 break;
             }
             default: return fail(cb, 'คำสั่งไม่ถูกต้อง');

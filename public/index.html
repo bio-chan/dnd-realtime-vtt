@@ -60,10 +60,6 @@
           </div>
           <div class="grid2">
             <label class="span2">ชื่อตัวละคร<input id="cr-name" maxlength="60" placeholder="เช่น เป็ดไวกิ้ง"></label>
-            <label>เผ่า<select id="cr-race"></select></label>
-            <label>เผ่า (ชื่อที่แสดง)<input id="cr-race-name" maxlength="60"></label>
-            <label>อาชีพ<select id="cr-class"></select></label>
-            <label>อาชีพ (ชื่อที่แสดง)<input id="cr-class-name" maxlength="60"></label>
             <label>ส่วนสูง<input id="cr-height" maxlength="60" placeholder="เช่น 175cm"></label>
             <label>แนวทาง (Alignment)<select id="cr-align"></select></label>
           </div>
@@ -71,7 +67,28 @@
       </div>
 
       <div class="panel cr-sec">
-        <h3><span class="num">2</span> ค่าพลัง (Ability Scores)</h3>
+        <h3><span class="num">2</span> เผ่าพันธุ์ <small class="muted" id="cr-race-count"></small></h3>
+        <select id="cr-race" class="hidden"></select>
+        <div class="pick-layout">
+          <div class="pick-grid" id="cr-race-grid"></div>
+          <div class="pick-info" id="cr-race-info"></div>
+        </div>
+        <label class="mt12">ชื่อเผ่าที่แสดงบนการ์ด<input id="cr-race-name" maxlength="60"></label>
+      </div>
+
+      <div class="panel cr-sec">
+        <h3><span class="num">3</span> อาชีพ <small class="muted" id="cr-class-count"></small></h3>
+        <select id="cr-class" class="hidden"></select>
+        <div class="pick-filter" id="cr-class-filter"></div>
+        <div class="pick-layout">
+          <div class="pick-grid" id="cr-class-grid"></div>
+          <div class="pick-info" id="cr-class-info"></div>
+        </div>
+        <label class="mt12">ชื่ออาชีพที่แสดงบนการ์ด<input id="cr-class-name" maxlength="60"></label>
+      </div>
+
+      <div class="panel cr-sec">
+        <h3><span class="num">4</span> ค่าพลัง (Ability Scores)</h3>
         <div class="row wrap gap8 mb8">
           <button class="btn btn-sm" id="cr-roll4d6">สุ่ม 4d6 ตัดลูกต่ำสุด</button>
           <button class="btn btn-sm" id="cr-std">ค่ามาตรฐาน 15·14·13·12·10·8</button>
@@ -83,7 +100,7 @@
       </div>
 
       <div class="panel cr-sec">
-        <h3><span class="num">3</span> พลังชีวิตและการต่อสู้</h3>
+        <h3><span class="num">5</span> พลังชีวิตและการต่อสู้</h3>
         <div class="grid4">
           <label class="c-hp">HP สูงสุด<input id="cr-hp" type="number" min="1" max="9999"></label>
           <label class="c-sp">SP สูงสุด<input id="cr-sp" type="number" min="0" max="9999"></label>
@@ -95,7 +112,7 @@
       </div>
 
       <div class="panel cr-sec">
-        <h3><span class="num">4</span> สกิลและเรื่องราว</h3>
+        <h3><span class="num">6</span> สกิลและเรื่องราว</h3>
         <div class="grid2">
           <label class="span2">สกิล<input id="cr-skills" maxlength="1500" placeholder="เช่น Fireball, Firewall"></label>
           <label class="span2">อัลติ (Ultimate)<textarea id="cr-ult" rows="2" maxlength="1500" placeholder="ท่าไม้ตายและเงื่อนไขการใช้"></textarea></label>
@@ -106,7 +123,7 @@
       </div>
 
       <div class="panel cr-sec" id="cr-gear-sec">
-        <h3><span class="num">5</span> อุปกรณ์เริ่มต้น</h3>
+        <h3><span class="num">7</span> อุปกรณ์เริ่มต้น</h3>
         <div class="grid4">
           <label class="span2">อาวุธ<input id="cr-wpn" maxlength="60" placeholder="เช่น ขวาน"></label>
           <label>ดาเมจ<input id="cr-wpn-dmg" maxlength="20" placeholder="1d8"></label>
@@ -200,7 +217,7 @@
       </div>
       <div class="rh-center" id="turn-banner"></div>
       <div class="rh-right">
-        <span class="pill hidden" id="pill-shop">ร้านค้าเปิด</span>
+        <button class="btn btn-sm btn-ghost hidden" id="btn-shop">ร้านค้า</button>
         <button class="btn btn-ghost btn-sm" id="btn-sound" title="เปิด/ปิดเสียง">เสียง</button>
         <button class="btn btn-ghost btn-sm" id="btn-dice-anim" title="แสดงลูกเต๋า 3D ของผู้เล่นคนอื่น">ลูกเต๋า 3D</button>
       </div>
@@ -216,6 +233,7 @@
     <main class="room-center panel">
       <div id="event-banner" class="event-banner hidden"></div>
       <div id="combat-strip" class="combat-strip"></div>
+      <div id="turn-panel" class="turn-panel hidden"></div>
       <div id="feed" class="feed"></div>
       <form id="form-chat" class="chat-bar">
         <input id="chat-input" maxlength="500" placeholder="พิมพ์ข้อความ... (พิมพ์ /r 2d6+3 เพื่อทอยสูตร)" autocomplete="off">
@@ -247,6 +265,7 @@
         <input id="dice-reason" maxlength="80" placeholder="ทอยเพื่อ... (เช่น โจมตี)">
         <label class="check hidden" id="secret-wrap" title="เฉพาะ DM เห็นผล"><input type="checkbox" id="dice-secret"> ทอยลับ</label>
       </div>
+      <div class="dice-odds" id="dice-odds" aria-live="polite"></div>
       <div class="quick-row" id="quick-row"></div>
     </div>
 
@@ -263,6 +282,38 @@
     </div>
   </div>
 </section>
+
+<!-- ============ SHOP PAGE ============ -->
+<div id="shop-page" class="shop-page hidden">
+  <div class="shop-inner">
+    <header class="shop-head">
+      <div>
+        <div class="shop-kicker">ร้านค้า</div>
+        <h2 id="shop-title">ร้านค้าของพ่อค้า</h2>
+        <p id="shop-sub" class="muted"></p>
+      </div>
+      <button class="btn" id="shop-close">← กลับไปที่โต๊ะ</button>
+    </header>
+    <div class="shop-dm-bar hidden" id="shop-dm-bar">
+      <button class="btn btn-primary" id="shop-toggle">เปิดร้านให้ผู้เล่น</button>
+      <label>ชื่อร้าน<input id="shop-name" maxlength="60"></label>
+      <label>ราคารับซื้อคืน (%)<input id="sell-rate" type="number" min="0" max="100"></label>
+      <button class="btn" id="shop-save">บันทึก</button>
+      <button class="btn btn-gold" id="shop-new">เพิ่มสินค้า</button>
+    </div>
+    <div id="shop-haggles" class="shop-haggles hidden"></div>
+    <div class="shop-body">
+      <section>
+        <h4>สินค้า</h4>
+        <div id="shop-items" class="shop-items"></div>
+      </section>
+      <aside id="shop-sell-wrap">
+        <h4>ขายของให้ร้าน</h4>
+        <div id="shop-sell" class="shop-sell"></div>
+      </aside>
+    </div>
+  </div>
+</div>
 
 <!-- ============ MODAL ============ -->
 <div id="modal" class="modal hidden">
@@ -281,6 +332,7 @@
 <script src="three.min.js"></script>
 <script src="dice3d.js"></script>
 <script src="data.js"></script>
+<script src="dice-math.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
