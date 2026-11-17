@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Real-time VTT</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <!-- หน้า Lobby สร้าง/เข้าห้อง -->
+    <div id="lobby-screen" class="container">
+        <h1>🐉 D&D Virtual Tabletop</h1>
+        <div class="card-box">
+            <div class="lobby-section">
+                <h2>สร้างห้องใหม่ (สำหรับ DM)</h2>
+                <button onclick="createRoom()" class="btn-primary">สร้างห้อง (Create Room)</button>
+            </div>
+            <hr>
+            <div class="lobby-section">
+                <h2>เข้าร่วมห้อง (สำหรับ Player)</h2>
+                <input type="text" id="join-code" placeholder="รหัสห้อง (เช่น A1B2C)">
+                <input type="text" id="char-name" placeholder="ชื่อตัวละคร">
+                <input type="number" id="char-hp" placeholder="Max HP (เช่น 25)">
+                <input type="number" id="char-mana" placeholder="Max Mana (เช่น 10)">
+                <button onclick="joinRoom()" class="btn-secondary">เข้าห้อง (Join Room)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- หน้าจอหลักในห้องเกม -->
+    <div id="game-screen" class="hidden">
+        <header>
+            <div>ห้อง: <strong id="display-room-code"></strong> | บทบาท: <span id="display-role" class="badge"></span></div>
+            <div id="dm-save-controls" class="hidden">
+                <button onclick="exportSave()">💾 Save Game (JSON)</button>
+                <input type="file" id="import-file" accept=".json" onchange="importSave(event)" style="display:none">
+                <button onclick="document.getElementById('import-file').click()">📂 Load Save</button>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            <!-- ซ้าย: ระบบทอยลูกเต๋า -->
+            <section class="panel">
+                <h3>🎲 ทอยลูกเต๋า (Dice Roller)</h3>
+                <div class="dice-controls">
+                    <input type="number" id="dice-mod" value="0" placeholder="Modifier (+/-)">
+                    <div class="dice-buttons">
+                        <button onclick="roll(4)">d4</button>
+                        <button onclick="roll(6)">d6</button>
+                        <button onclick="roll(8)">d8</button>
+                        <button onclick="roll(10)">d10</button>
+                        <button onclick="roll(12)">d12</button>
+                        <button onclick="roll(20)" class="d20">d20</button>
+                        <button onclick="roll(100)">d100</button>
+                    </div>
+                </div>
+                <div id="latest-roll" class="roll-banner">รอการทอยเต๋า...</div>
+                <ul id="dice-logs" class="log-list"></ul>
+            </section>
+
+            <!-- กลาง: ลำดับการต่อสู้ & การ์ดตัวละคร -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h3>⚔️ ลำดับการต่อสู้ & สถานะ (Combat & Cards)</h3>
+                    <div id="dm-combat-controls" class="hidden">
+                        <button onclick="dmAction('SORT_INITIATIVE')">เรียงลำดับ (Initiative)</button>
+                        <button onclick="dmAction('NEXT_TURN')" class="btn-primary">เทิร์นถัดไป ⏭️</button>
+                    </div>
+                </div>
+                <div id="entities-list" class="cards-container"></div>
+            </section>
+
+            <!-- ขวา: แผงควบคุมเฉพาะ DM -->
+            <section id="dm-panel" class="panel hidden">
+                <h3>👑 แผงควบคุม DM</h3>
+                <div class="dm-box">
+                    <h4>เพิ่มมอนสเตอร์ / NPC</h4>
+                    <input type="text" id="mon-name" placeholder="ชื่อมอนสเตอร์ (เช่น Goblin)">
+                    <input type="number" id="mon-hp" placeholder="HP">
+                    <input type="number" id="mon-mana" placeholder="Mana">
+                    <input type="number" id="mon-init" placeholder="Initiative">
+                    <button onclick="addMonster()" class="btn-primary">+ เพิ่มลงสนาม</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="client.js"></script>
+</body>
+</html>
+

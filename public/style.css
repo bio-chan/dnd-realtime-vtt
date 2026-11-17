@@ -1,0 +1,191 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #121212;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 0;
+}
+.hidden {
+    display: none !important;
+}
+.container {
+    max-width: 500px;
+    margin: 50px auto;
+    text-align: center;
+    padding: 0 15px;
+}
+.card-box {
+    background: #1e1e1e;
+    padding: 25px;
+    border-radius: 10px;
+    border: 1px solid #333;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+}
+.lobby-section {
+    margin: 15px 0;
+}
+hr {
+    border: 0;
+    border-top: 1px solid #333;
+    margin: 20px 0;
+}
+input {
+    width: 90%;
+    padding: 10px;
+    margin: 8px 0;
+    background: #2c2c2c;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+input:focus {
+    outline: none;
+    border-color: #b71c1c;
+}
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 4px;
+    transition: opacity 0.2s, transform 0.1s;
+}
+button:hover {
+    opacity: 0.9;
+}
+button:active {
+    transform: scale(0.98);
+}
+.btn-primary {
+    background: #b71c1c;
+    color: white;
+}
+.btn-secondary {
+    background: #1565c0;
+    color: white;
+}
+header {
+    background: #1a1a1a;
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #b71c1c;
+}
+.badge {
+    background: #b71c1c;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 15px;
+    padding: 20px;
+}
+@media (max-width: 900px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.panel {
+    background: #1e1e1e;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.dice-controls {
+    margin-bottom: 10px;
+}
+.dice-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.dice-buttons button {
+    background: #333;
+    color: #fff;
+    font-size: 16px;
+    min-width: 48px;
+    padding: 8px 12px;
+}
+.dice-buttons button.d20 {
+    background: #d32f2f;
+}
+.roll-banner {
+    background: #263238;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 6px;
+    font-size: 18px;
+    text-align: center;
+    border: 1px solid #455a64;
+    min-height: 24px;
+}
+.log-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 14px;
+}
+.log-list li {
+    padding: 6px;
+    border-bottom: 1px solid #2c2c2c;
+}
+.entity-card {
+    background: #252525;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    border-left: 5px solid #555;
+    transition: border-left-color 0.3s;
+}
+.entity-card.active-turn {
+    border-left-color: #ffd600;
+    background: #2e2b18;
+}
+.bar-bg {
+    background: #444;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 4px 0 8px 0;
+}
+.hp-fill {
+    background: #e53935;
+    height: 100%;
+    transition: width 0.3s ease-in-out;
+}
+.mana-fill {
+    background: #1e88e5;
+    height: 100%;
+    transition: width 0.3s ease-in-out;
+}
+.tag {
+    display: inline-block;
+    background: #424242;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin: 2px;
+}
+.tag.removable {
+    cursor: pointer;
+}
+.tag.removable:hover {
+    background: #d32f2f;
+}
+
