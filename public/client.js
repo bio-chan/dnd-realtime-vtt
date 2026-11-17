@@ -239,9 +239,14 @@ socket.on('updateState', (state) => {
 
 socket.on('diceRolled', (log) => {
     const modText = log.mod >= 0 ? `+${log.mod}` : log.mod;
-    const critBonus = log.isNat20 ? ' ✨ <b style="color:#ffd700;">NAT 20!</b>' : (log.isNat1 ? ' 💀 <b style="color:#ff5252;">NAT 1!</b>' : '');
-    document.getElementById('latest-roll').innerHTML = 
-        `🎲 <strong>${log.roller}</strong> ทอย ${log.dice} (${log.raw} ${modText}) = <span style="color:#ffd600; font-size:24px;">${log.total}</span>${critBonus}`;
+    const critBonus = log.isNat20 ? ' ✨ <b style="color:#ffd700;">[NATURAL 20]</b>' : (log.isNat1 ? ' 💀 <b style="color:#ff5252;">[NATURAL 1]</b>' : '');
+    document.getElementById('latest-roll').innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; gap:2px; width:100%;">
+            <div style="font-family:var(--font-heading); color:var(--gold-primary); font-size:13.5px; letter-spacing:1px;">✦ ${log.roller} ทอย ${log.dice} ✦</div>
+            <div style="font-family:var(--font-mono); font-size:30px; font-weight:900; color:#ffd700; text-shadow:0 0 15px rgba(255,215,0,0.6); line-height:1.1;">${log.total}</div>
+            <div style="font-size:12px; color:#aaa; font-family:var(--font-mono);">(ลูกเต๋า: ${log.raw} ${modText})${critBonus}</div>
+        </div>
+    `;
 
     // แสดง 3D Dice Animation และเล่นเสียง
     show3DDiceRoll(log);
@@ -309,11 +314,11 @@ function renderState() {
         let hpBarHtml = '';
 
         if (canSeeHp) {
-            hpDisplay = `HP: ${ent.hp} / ${ent.maxHp}`;
+            hpDisplay = `<div class="bar-label"><span style="color:#ff8a80;">❤️ HEALTH</span><span>${ent.hp} / ${ent.maxHp}</span></div>`;
             hpBarHtml = `<div class="bar-bg"><div class="hp-fill" style="width:${hpPct}%"></div></div>`;
         } else {
             // โหมดซ่อนเลือดสำหรับผู้เล่นทั่วไป
-            hpDisplay = `HP: ??? / ??? <span class="tag-hp-locked">🔒 เลือดถูกซ่อนโดย DM</span>`;
+            hpDisplay = `<div class="bar-label"><span style="color:#ff8a80;">❤️ HEALTH</span><span>??? / ???</span></div>`;
             hpBarHtml = `<div class="bar-bg"><div class="hp-hidden" title="DM ซ่อนเลือดมอนสเตอร์ตัวนี้"></div></div>`;
         }
 
@@ -327,19 +332,19 @@ function renderState() {
             ` : '';
 
             dmTools = `
-                <div style="margin-top:10px; border-top:1px solid #333346; padding-top:8px; display:flex; flex-wrap:wrap; gap:5px; align-items:center;">
-                    <span>HP:</span>
+                <div class="dm-card-tools">
+                    <span style="font-size:11px; color:#aaa; font-family:var(--font-heading);">HP:</span>
                     <button onclick="dmAction('UPDATE_ENTITY', {id:'${ent.id}', hp:${ent.hp - 1}})">-1</button>
                     <button onclick="dmAction('UPDATE_ENTITY', {id:'${ent.id}', hp:${ent.hp + 1}})">+1</button>
                     <button onclick="promptCustomHp('${ent.id}', ${ent.hp})">ตั้ง HP</button>
-                    <span>Mana:</span>
+                    <span style="font-size:11px; color:#aaa; font-family:var(--font-heading); margin-left:4px;">MANA:</span>
                     <button onclick="dmAction('UPDATE_ENTITY', {id:'${ent.id}', mana:${ent.mana - 1}})">-1</button>
                     <button onclick="dmAction('UPDATE_ENTITY', {id:'${ent.id}', mana:${ent.mana + 1}})">+1</button>
                     <button onclick="promptStatus('${ent.id}')">+สถานะ</button>
                     <button onclick="promptItem('${ent.id}')">+ไอเทม</button>
                     <button onclick="promptInit('${ent.id}', ${ent.initiative})">แก้ Init</button>
                     ${monsterRevealControl}
-                    <button onclick="dmAction('REMOVE_ENTITY', {id:'${ent.id}'})" style="background:#b71c1c; color:white;">ลบ</button>
+                    <button onclick="dmAction('REMOVE_ENTITY', {id:'${ent.id}'})" style="background:#800a13; color:#ffcdd2; border-color:#e53935;">ลบ</button>
                 </div>
             `;
         }
@@ -348,38 +353,41 @@ function renderState() {
         let dmStatusBadge = '';
         if (myRole === 'DM' && isMonster) {
             dmStatusBadge = ent.revealHp 
-                ? '<span class="tag-hp-revealed" title="ผู้เล่นมองเห็นเลือดมอนตัวนี้">👁️ ผู้เล่นมองเห็นเลือด</span>' 
-                : '<span class="tag-hp-locked" title="ผู้เล่นไม่เห็นเลือดมอนตัวนี้">🔒 ผู้เล่นไม่เห็นเลือด</span>';
+                ? '<span class="tag-hp-revealed" title="ผู้เล่นมองเห็นเลือดมอนตัวนี้">👁️ เห็นเลือด</span>' 
+                : '<span class="tag-hp-locked" title="ผู้เล่นไม่เห็นเลือดมอนตัวนี้">🔒 ซ่อนเลือด</span>';
         }
 
         const statusesHtml = (ent.statuses && ent.statuses.length > 0)
             ? ent.statuses.map((s, sIdx) => myRole === 'DM' 
                 ? `<span class="tag removable" title="คลิกเพื่อลบ" onclick="dmAction('UPDATE_ENTITY', {id:'${ent.id}', removeStatus:${sIdx}})">${s} ×</span>` 
                 : `<span class="tag">${s}</span>`).join('')
-            : '-';
+            : '<span style="color:#777;">-</span>';
 
         const itemsHtml = (ent.inventory && ent.inventory.length > 0)
             ? ent.inventory.map((i, iIdx) => myRole === 'DM' 
                 ? `<span class="tag removable" title="คลิกเพื่อลบ" onclick="dmAction('UPDATE_ENTITY', {id:'${ent.id}', removeItem:${iIdx}})">🎒 ${i} ×</span>` 
                 : `<span class="tag">🎒 ${i}</span>`).join('')
-            : '-';
+            : '<span style="color:#777;">-</span>';
+
+        const turnCrest = isTurn ? '<span class="turn-indicator-badge">TURN</span>' : '';
 
         return `
             <div class="entity-card ${isMonster ? 'monster' : ''} ${isTurn ? 'active-turn' : ''}">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <div>
-                        <strong>${isTurn ? '▶️ ' : ''}${ent.name}</strong> 
-                        <span style="font-size:12px; color:#aaa;">(${ent.type})</span>
+                        ${turnCrest}
+                        <strong style="font-size:16px; font-family:var(--font-heading); color:#fff;">${ent.name}</strong> 
+                        <span style="font-size:12px; color:var(--gold-primary); font-family:var(--font-heading); margin-left:4px;">(${ent.type})</span>
                         ${dmStatusBadge}
                     </div>
-                    <span>Init: <b>${ent.initiative}</b></span>
+                    <span class="init-badge">INIT: <b>${ent.initiative}</b></span>
                 </div>
-                <div style="margin-top:6px;">${hpDisplay}</div>
+                ${hpDisplay}
                 ${hpBarHtml}
-                <div>Mana: ${ent.mana} / ${ent.maxMana}</div>
+                <div class="bar-label"><span style="color:#90caf9;">🔮 MANA</span><span>${ent.mana} / ${ent.maxMana}</span></div>
                 <div class="bar-bg"><div class="mana-fill" style="width:${manaPct}%"></div></div>
-                <div style="font-size:13px; margin-top:4px;">สถานะ: ${statusesHtml}</div>
-                <div style="font-size:13px;">กระเป๋า: ${itemsHtml}</div>
+                <div style="font-size:13px; margin-top:6px; color:#ccc;">สถานะ: ${statusesHtml}</div>
+                <div style="font-size:13px; margin-top:2px; color:#ccc;">กระเป๋า: ${itemsHtml}</div>
                 ${dmTools}
             </div>
         `;

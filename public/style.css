@@ -1,331 +1,776 @@
+/* ========================================================
+   ⚔️ D&D REAL-TIME VTT - DARK FANTASY RPG THEME (BALDUR'S GATE 3 / D&D BEYOND)
+   ======================================================== */
+
+:root {
+    --bg-deep: #0b090e;
+    --bg-panel: rgba(22, 18, 26, 0.88);
+    --bg-card: rgba(28, 23, 34, 0.92);
+    --gold-primary: #d4af37;
+    --gold-bright: #ffd700;
+    --gold-light: #fff0b3;
+    --gold-dark: #8c6c21;
+    --ruby-primary: #9b111e;
+    --ruby-bright: #e53935;
+    --ruby-dark: #580a11;
+    --mana-primary: #1d63b8;
+    --mana-bright: #42a5f5;
+    --mana-dark: #0e376c;
+    --border-gold: rgba(212, 175, 55, 0.35);
+    --text-primary: #eae5d9;
+    --text-secondary: #a9a3b2;
+    --font-heading: 'Cinzel', serif;
+    --font-body: 'Sarabun', sans-serif;
+    --font-mono: 'Fira Code', monospace;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #101014;
-    color: #e0e0e0;
+    font-family: var(--font-body);
+    background: var(--bg-deep);
+    background-image: 
+        radial-gradient(circle at 50% 0%, #24111c 0%, #0d0a11 65%, #050406 100%);
+    color: var(--text-primary);
     margin: 0;
     padding: 0;
+    min-height: 100vh;
     overflow-x: hidden;
+    position: relative;
+}
+
+/* Subtle arcane texture overlay */
+.bg-arcane-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: radial-gradient(rgba(212, 175, 55, 0.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
 }
 
 .hidden {
     display: none !important;
 }
 
+/* ========================================================
+   📜 Custom Fantasy Scrollbars
+   ======================================================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #0f0d14;
+    border-left: 1px solid rgba(212, 175, 55, 0.1);
+}
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #3d3448, #241f2c);
+    border: 1px solid var(--border-gold);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #d4af37, #8c6c21);
+}
+
+/* ========================================================
+   🏛️ Lobby & Altar Frame
+   ======================================================== */
 .container {
-    max-width: 500px;
-    margin: 50px auto;
+    max-width: 540px;
+    margin: 40px auto;
     text-align: center;
+    padding: 0 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.lobby-brand {
+    margin-bottom: 25px;
+}
+
+.brand-crest {
+    font-size: 24px;
+    letter-spacing: 8px;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.5));
+}
+
+.fantasy-title {
+    font-family: var(--font-heading);
+    font-size: 38px;
+    font-weight: 900;
+    margin: 0;
+    letter-spacing: 2px;
+    background: linear-gradient(180deg, #fff3cf 0%, var(--gold-bright) 45%, var(--gold-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 18px rgba(212, 175, 55, 0.4));
+}
+
+.fantasy-subtitle {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold-primary);
+    opacity: 0.85;
+    margin-top: 8px;
+}
+
+.altar-frame {
+    background: linear-gradient(180deg, rgba(30, 24, 38, 0.95) 0%, rgba(17, 13, 21, 0.98) 100%);
+    border: 1px solid var(--border-gold);
+    border-radius: 8px;
+    padding: 35px 30px;
+    position: relative;
+    box-shadow: 
+        0 15px 40px rgba(0, 0, 0, 0.9), 
+        inset 0 0 25px rgba(212, 175, 55, 0.08),
+        0 0 0 1px rgba(0,0,0,0.8);
+    backdrop-filter: blur(12px);
+}
+
+/* Corner Gothic Accents */
+.corner-ornament {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--gold-primary);
+    pointer-events: none;
+}
+.corner-ornament.top-left { top: 4px; left: 4px; border-right: none; border-bottom: none; }
+.corner-ornament.top-right { top: 4px; right: 4px; border-left: none; border-bottom: none; }
+.corner-ornament.bottom-left { bottom: 4px; left: 4px; border-right: none; border-top: none; }
+.corner-ornament.bottom-right { bottom: 4px; right: 4px; border-left: none; border-top: none; }
+
+.section-heading {
+    font-family: var(--font-heading);
+    font-size: 19px;
+    color: var(--gold-light);
+    margin: 0 0 6px 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.section-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0 0 16px 0;
+}
+
+.fantasy-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 24px 0;
+    position: relative;
+}
+.fantasy-divider::before, .fantasy-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+}
+.fantasy-divider span {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--gold-primary);
     padding: 0 15px;
 }
 
-.card-box {
-    background: #1c1c24;
-    padding: 30px;
-    border-radius: 12px;
-    border: 1px solid #2e2e3d;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+/* Form Inputs */
+.input-group, .input-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
 }
 
-.lobby-section {
-    margin: 20px 0;
-}
-
-hr {
-    border: 0;
-    border-top: 1px solid #2e2e3d;
-    margin: 25px 0;
+.dual-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 }
 
 input[type="text"], input[type="number"] {
-    width: 90%;
-    padding: 12px;
-    margin: 8px 0;
-    background: #282836;
-    border: 1px solid #424258;
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(14, 11, 18, 0.9);
+    border: 1px solid #3c344a;
     color: #fff;
-    border-radius: 6px;
-    box-sizing: border-box;
-    font-size: 15px;
-    transition: border-color 0.2s;
+    border-radius: 5px;
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    transition: all 0.25s ease;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+}
+
+input[type="number"] {
+    font-family: var(--font-mono);
 }
 
 input[type="text"]:focus, input[type="number"]:focus {
     outline: none;
-    border-color: #b71c1c;
-    box-shadow: 0 0 8px rgba(183, 28, 28, 0.4);
+    border-color: var(--gold-primary);
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.35), inset 0 2px 6px rgba(0,0,0,0.8);
+    background: rgba(20, 16, 26, 0.95);
 }
 
+/* ========================================================
+   ⚔️ Buttons with RPG Aesthetic
+   ======================================================== */
 button {
-    padding: 10px 16px;
+    font-family: var(--font-heading);
+    letter-spacing: 1px;
     border: none;
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
-    font-weight: bold;
-    margin: 4px;
-    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+    font-weight: 700;
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+    position: relative;
+    user-select: none;
 }
 
 button:hover {
-    opacity: 0.92;
-    transform: translateY(-1px);
+    filter: brightness(1.15);
+    transform: translateY(-1.5px);
 }
 
 button:active {
+    filter: brightness(0.95);
     transform: translateY(1px);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #d32f2f, #8e0000);
-    color: white;
-    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+    background: linear-gradient(180deg, #c62828 0%, #800a13 100%);
+    color: #fff;
+    border: 1px solid #ff7961;
+    box-shadow: 0 4px 15px rgba(183, 28, 28, 0.4), inset 0 1px 1px rgba(255,255,255,0.3);
+    padding: 12px 20px;
+    font-size: 15px;
+}
+.btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(211, 47, 47, 0.6), inset 0 1px 2px rgba(255,255,255,0.4);
 }
 
 .btn-secondary {
-    background: linear-gradient(135deg, #1976d2, #0d47a1);
-    color: white;
-    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    background: linear-gradient(180deg, #1e6ac5 0%, #0d3e7d 100%);
+    color: #fff;
+    border: 1px solid #64b5f6;
+    box-shadow: 0 4px 15px rgba(25, 118, 210, 0.4), inset 0 1px 1px rgba(255,255,255,0.3);
+    padding: 12px 20px;
+    font-size: 15px;
 }
 
-.btn-icon {
-    background: #282836;
-    color: #ffd54f;
-    border: 1px solid #444;
+.btn-gold-trim {
+    border: 1px solid var(--gold-bright) !important;
+}
+
+.btn-metal {
+    background: linear-gradient(180deg, #322b3d 0%, #1c1724 100%);
+    color: var(--gold-light);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
+    padding: 8px 14px;
+    font-size: 13px;
+}
+.btn-metal:hover {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
 }
 
 .btn-small {
     padding: 6px 12px;
-    font-size: 13px;
-    background: #333344;
-    color: #e0e0e0;
+    font-size: 12.5px;
 }
 
-header {
-    background: #16161e;
-    padding: 12px 25px;
+/* ========================================================
+   🛡️ Top Header Navigation Bar
+   ======================================================== */
+.top-nav-bar {
+    background: rgba(14, 11, 18, 0.92);
+    border-bottom: 1px solid var(--gold-primary);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), inset 0 -1px 0 rgba(212, 175, 55, 0.2);
+    padding: 10px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid #b71c1c;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    backdrop-filter: blur(14px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
-.header-left, .header-right {
-    display: flex;
+.room-pill, .role-pill {
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
+    background: rgba(28, 22, 34, 0.9);
+    border: 1px solid #443a52;
+    border-radius: 4px;
+    padding: 4px 10px;
+    gap: 8px;
 }
 
-.divider {
-    color: #555;
-    margin: 0 5px;
+.pill-label {
+    font-family: var(--font-heading);
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--gold-primary);
+}
+
+.pill-value {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: #fff;
+    letter-spacing: 1.5px;
 }
 
 .badge {
-    background: #b71c1c;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-weight: bold;
-    letter-spacing: 0.5px;
+    background: linear-gradient(180deg, #9b111e 0%, #580a11 100%);
+    border: 1px solid var(--gold-primary);
+    color: var(--gold-light);
+    font-family: var(--font-heading);
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    box-shadow: 0 0 8px rgba(155, 17, 30, 0.6);
 }
 
+/* ========================================================
+   ⚔️ Main 3-Column RPG Panels
+   ======================================================== */
 .main-grid {
     display: grid;
-    grid-template-columns: 1.1fr 2fr 1fr;
-    gap: 15px;
-    padding: 20px;
+    grid-template-columns: 1.15fr 2fr 1.05fr;
+    gap: 16px;
+    padding: 16px 20px;
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 85px);
+    align-items: stretch;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1100px) {
     .main-grid {
         grid-template-columns: 1fr;
+        min-height: auto;
     }
 }
 
 .panel {
-    background: #181822;
-    padding: 16px;
-    border-radius: 10px;
-    border: 1px solid #2c2c3e;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-gold);
+    border-radius: 8px;
+    padding: 18px;
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.8), 
+        inset 0 1px 0 rgba(255, 230, 160, 0.08);
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-dice {
+    height: 100%;
+}
+
+.panel-combat {
+    height: 100%;
+}
+
+.panel-dm {
+    height: 100%;
 }
 
 .panel-header {
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    position: relative;
+}
+
+.panel-header h3 {
+    font-family: var(--font-heading);
+    font-size: 17px;
+    color: var(--gold-light);
+    margin: 0;
+    letter-spacing: 0.8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.combat-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dm-combat-btns {
+    display: flex;
+    gap: 6px;
+}
+
+/* ========================================================
+   🎲 Left Panel: 3D Dice Roller & Faceted Buttons
+   ======================================================== */
+.mod-container {
     margin-bottom: 12px;
 }
 
-.dice-controls {
-    margin-bottom: 12px;
+.mod-container label {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 5px;
 }
 
 .dice-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 15px;
 }
 
-.dice-buttons button {
-    background: #2a2a3a;
-    color: #fff;
+.die-btn {
+    font-family: var(--font-heading);
     font-size: 15px;
-    min-width: 50px;
-    padding: 9px 12px;
-    border: 1px solid #3c3c52;
-}
-
-.dice-buttons button.d20 {
-    background: linear-gradient(135deg, #e53935, #b71c1c);
-    border-color: #ff5252;
-    font-size: 17px;
     font-weight: 800;
+    padding: 12px 6px;
+    background: linear-gradient(145deg, #2c2536 0%, #191520 100%);
+    border: 1px solid #4a3e5c;
+    color: var(--gold-light);
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.15);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
+.die-btn:hover {
+    border-color: var(--gold-primary);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.3), inset 0 1px 1px rgba(255,255,255,0.3);
+}
+
+.die-btn.d20 {
+    grid-column: span 2;
+    background: linear-gradient(145deg, #b71c1c 0%, #5d0909 100%);
+    border: 1px solid var(--gold-bright);
+    color: #fff;
+    font-size: 18px;
+    box-shadow: 0 4px 14px rgba(183, 28, 28, 0.5), inset 0 1px 2px rgba(255, 215, 0, 0.4);
+}
+.die-btn.d20:hover {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), inset 0 1px 4px rgba(255, 255, 255, 0.5);
+}
+
+/* Oracle Prophetic Banner */
 .roll-banner {
-    background: #222230;
-    padding: 14px;
-    margin: 12px 0;
-    border-radius: 8px;
-    font-size: 16px;
+    background: radial-gradient(circle at center, #231b28 0%, #141018 100%);
+    border: 1px solid var(--border-gold);
+    border-radius: 6px;
+    padding: 16px;
+    margin: 10px 0 16px 0;
     text-align: center;
-    border: 1px solid #393950;
-    min-height: 24px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 0 15px rgba(212, 175, 55, 0.08);
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+}
+
+.banner-hint {
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    font-style: italic;
+}
+
+.log-header {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    color: var(--gold-primary);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
 }
 
 .log-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    max-height: 320px;
+    flex: 1;
+    max-height: 280px;
     overflow-y: auto;
-    font-size: 13.5px;
+    font-size: 13px;
+    border: 1px solid #282132;
+    border-radius: 5px;
+    background: rgba(14, 11, 18, 0.7);
 }
 
 .log-list li {
-    padding: 8px;
-    border-bottom: 1px solid #232332;
+    padding: 8px 12px;
+    border-bottom: 1px solid #221c2b;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+}
+.log-list li:hover {
+    background: rgba(212, 175, 55, 0.05);
+}
+
+/* ========================================================
+   ⚔️ Center Panel: Combat & RPG Character Cards
+   ======================================================== */
+.cards-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .entity-card {
-    background: #1e1e2a;
-    padding: 14px;
-    margin-bottom: 12px;
-    border-radius: 8px;
-    border-left: 5px solid #4a4a60;
+    background: var(--bg-card);
+    border: 1px solid #362e44;
+    border-left: 4px solid var(--mana-primary);
+    border-radius: 7px;
+    padding: 16px;
+    margin-bottom: 14px;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    position: relative;
 }
 
 .entity-card.monster {
-    border-left-color: #ff9800;
+    border-left: 4px solid var(--ruby-primary);
 }
 
 .entity-card.active-turn {
-    border-left-color: #ffd600 !important;
-    background: #2a2818;
-    box-shadow: 0 0 15px rgba(255, 214, 0, 0.25);
+    border-left: 5px solid var(--gold-bright) !important;
+    border-color: rgba(212, 175, 55, 0.6);
+    background: linear-gradient(90deg, #2b2214 0%, #1a1622 100%) !important;
+    box-shadow: 0 0 22px rgba(212, 175, 55, 0.45), inset 0 0 15px rgba(212, 175, 55, 0.08) !important;
+    transform: translateX(2px);
+}
+
+.turn-indicator-badge {
+    background: linear-gradient(180deg, #d4af37, #8c6c21);
+    color: #0b090e;
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 900;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-right: 6px;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+.init-badge {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    background: rgba(14, 11, 18, 0.85);
+    border: 1px solid var(--border-gold);
+    padding: 3px 9px;
+    border-radius: 4px;
+    color: var(--gold-light);
+}
+
+/* RPG Glossy Health & Mana Bars */
+.bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    font-family: var(--font-mono);
 }
 
 .bar-bg {
-    background: #2c2c3c;
-    height: 14px;
-    border-radius: 7px;
+    background: #141118;
+    height: 15px;
+    border-radius: 8px;
     overflow: hidden;
-    margin: 5px 0 10px 0;
+    margin: 3px 0 10px 0;
     position: relative;
-    border: 1px solid #3a3a4e;
+    border: 1px solid #3c3348;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+}
+
+/* Glassy top reflection on bars */
+.bar-bg::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 45%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%);
+    pointer-events: none;
+    border-radius: 7px;
 }
 
 .hp-fill {
-    background: linear-gradient(90deg, #ff5252, #c62828);
+    background: linear-gradient(90deg, #d32f2f 0%, #ff5252 50%, #b71c1c 100%);
     height: 100%;
-    transition: width 0.4s ease-out;
+    transition: width 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+    box-shadow: 0 0 10px rgba(229, 57, 53, 0.5);
 }
 
 .hp-hidden {
     background: repeating-linear-gradient(
         45deg,
-        #3e2723,
-        #3e2723 10px,
-        #4e342e 10px,
-        #4e342e 20px
+        #2a151b,
+        #2a151b 10px,
+        #3b1e26 10px,
+        #3b1e26 20px
     );
     height: 100%;
     width: 100%;
 }
 
 .mana-fill {
-    background: linear-gradient(90deg, #42a5f5, #1565c0);
+    background: linear-gradient(90deg, #1976d2 0%, #42a5f5 50%, #0d47a1 100%);
     height: 100%;
-    transition: width 0.4s ease-out;
+    transition: width 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+    box-shadow: 0 0 10px rgba(66, 165, 245, 0.5);
 }
 
 .tag {
     display: inline-block;
-    background: #333346;
+    background: rgba(48, 40, 60, 0.8);
+    border: 1px solid #4a3e5c;
+    color: #ded9e5;
     padding: 3px 8px;
     border-radius: 4px;
     font-size: 12px;
     margin: 2px;
+    transition: all 0.2s ease;
 }
 
 .tag.removable {
     cursor: pointer;
 }
-
 .tag.removable:hover {
-    background: #d32f2f;
+    background: var(--ruby-primary);
+    border-color: #ff5252;
+    color: #fff;
 }
 
 .tag-hp-locked {
-    background: #bf360c;
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 4px;
+    background: rgba(183, 28, 28, 0.3);
+    border: 1px solid #e53935;
+    color: #ff8a80;
+    padding: 2px 7px;
+    border-radius: 3px;
     font-size: 11px;
     font-weight: bold;
     margin-left: 6px;
 }
 
 .tag-hp-revealed {
-    background: #2e7d32;
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 4px;
+    background: rgba(46, 125, 50, 0.3);
+    border: 1px solid #4caf50;
+    color: #a5d6a7;
+    padding: 2px 7px;
+    border-radius: 3px;
     font-size: 11px;
     font-weight: bold;
     margin-left: 6px;
 }
 
 .btn-toggle-reveal {
-    background: #37474f;
-    color: #eceff1;
-    border: 1px solid #546e7a;
+    background: #252c33;
+    border: 1px solid #455a64;
+    color: #cfd8dc;
+    font-size: 11.5px;
+    padding: 4px 8px;
+}
+.btn-toggle-reveal.revealed {
+    background: #14351a;
+    border-color: #2e7d32;
+    color: #a5d6a7;
+}
+
+.dm-card-tools {
+    margin-top: 12px;
+    border-top: 1px solid rgba(212, 175, 55, 0.15);
+    padding-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+}
+
+.dm-card-tools button {
+    background: rgba(35, 29, 44, 0.9);
+    border: 1px solid #4e4262;
+    color: #ddd;
     font-size: 12px;
     padding: 4px 8px;
 }
-
-.btn-toggle-reveal.revealed {
-    background: #1b5e20;
-    border-color: #2e7d32;
+.dm-card-tools button:hover {
+    border-color: var(--gold-primary);
+    color: #fff;
 }
 
-/* ===================================================
-   3D Animated Dice Roller Overlay
-=================================================== */
+/* ========================================================
+   👑 Right Panel: DM Command Chamber
+   ======================================================== */
+.dm-box-title {
+    font-family: var(--font-heading);
+    font-size: 13.5px;
+    letter-spacing: 1px;
+    color: var(--gold-primary);
+    text-align: center;
+    margin-bottom: 14px;
+}
+
+.input-stack label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 3px;
+}
+
+.reveal-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    margin: 10px 0;
+    color: #ddd;
+    cursor: pointer;
+}
+.reveal-checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--gold-primary);
+    cursor: pointer;
+}
+
+.btn-summon {
+    border: 1px solid var(--gold-bright);
+    margin-top: 10px;
+}
+
+/* ========================================================
+   🎲 3D Dice Modal Overlay & Cube
+   ======================================================== */
 .dice-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(8, 8, 12, 0.85);
-    backdrop-filter: blur(8px);
+    background: rgba(5, 4, 7, 0.88);
+    backdrop-filter: blur(10px);
     z-index: 9999;
     display: flex;
     justify-content: center;
@@ -339,24 +784,28 @@ header {
 }
 
 .dice-stage {
-    background: #181824;
-    border: 2px solid #3c3c54;
-    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(28, 22, 36, 0.98) 0%, rgba(14, 11, 18, 0.99) 100%);
+    border: 2px solid var(--gold-primary);
+    border-radius: 12px;
     padding: 30px 40px;
     text-align: center;
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
-    max-width: 420px;
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.95), 
+        0 0 35px rgba(212, 175, 55, 0.35),
+        inset 0 0 20px rgba(212, 175, 55, 0.1);
+    max-width: 440px;
     width: 90%;
     position: relative;
     overflow: hidden;
 }
 
 .dice-roller-title {
-    font-size: 20px;
-    font-weight: bold;
-    color: #ffca28;
+    font-family: var(--font-heading);
+    font-size: 21px;
+    font-weight: 800;
+    color: var(--gold-light);
     margin-bottom: 25px;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
 }
 
 .dice-scene {
@@ -400,21 +849,21 @@ header {
     position: absolute;
     width: 120px;
     height: 120px;
-    background: linear-gradient(145deg, #b71c1c, #d32f2f);
-    border: 3px solid #ff7961;
-    border-radius: 18px;
-    font-size: 42px;
+    background: linear-gradient(145deg, #a81a1a, #5b0909);
+    border: 3px solid var(--gold-bright);
+    border-radius: 16px;
+    font-family: var(--font-heading);
+    font-size: 44px;
     font-weight: 900;
     color: #ffffff;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
     box-sizing: border-box;
 }
 
-/* 6 Faces of the 3D Die */
 .face.front  { transform: rotateY(0deg) translateZ(60px); }
 .face.back   { transform: rotateY(180deg) translateZ(60px); }
 .face.right  { transform: rotateY(90deg) translateZ(60px); }
@@ -424,8 +873,8 @@ header {
 
 /* Critical 20 & 1 Stylings */
 .dice-stage.nat20 {
-    border-color: #ffd700;
-    box-shadow: 0 0 45px rgba(255, 215, 0, 0.6), inset 0 0 25px rgba(255, 215, 0, 0.2);
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 50px rgba(255, 215, 0, 0.7), inset 0 0 30px rgba(255, 215, 0, 0.25);
 }
 .dice-stage.nat20 .face {
     background: linear-gradient(145deg, #ff8f00, #ffb300);
@@ -435,10 +884,10 @@ header {
 
 .dice-stage.nat1 {
     border-color: #d50000;
-    box-shadow: 0 0 45px rgba(213, 0, 0, 0.7), inset 0 0 25px rgba(213, 0, 0, 0.3);
+    box-shadow: 0 0 50px rgba(213, 0, 0, 0.8), inset 0 0 30px rgba(213, 0, 0, 0.3);
 }
 .dice-stage.nat1 .face {
-    background: linear-gradient(145deg, #212121, #424242);
+    background: linear-gradient(145deg, #181818, #2e2e2e);
     border-color: #d50000;
     color: #ff5252;
 }
@@ -448,35 +897,39 @@ header {
 }
 
 .dice-calc {
-    font-size: 16px;
-    color: #aaa;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--text-secondary);
     margin-bottom: 5px;
 }
 
 .dice-total-display {
-    font-size: 48px;
+    font-family: var(--font-mono);
+    font-size: 52px;
     font-weight: 900;
-    color: #ffd600;
-    text-shadow: 0 0 20px rgba(255, 214, 0, 0.6);
+    color: var(--gold-bright);
+    text-shadow: 0 0 25px rgba(255, 215, 0, 0.65);
     line-height: 1.1;
 }
 
 .dice-special-badge {
     margin-top: 8px;
+    font-family: var(--font-heading);
     font-size: 16px;
-    font-weight: bold;
+    font-weight: 800;
     min-height: 24px;
+    letter-spacing: 1px;
 }
 
 .dice-special-badge.nat20-text {
-    color: #ffd700;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    color: var(--gold-bright);
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.9);
     animation: pulse 1s infinite alternate;
 }
 
 .dice-special-badge.nat1-text {
     color: #ff5252;
-    text-shadow: 0 0 10px rgba(255, 82, 82, 0.8);
+    text-shadow: 0 0 12px rgba(255, 82, 82, 0.9);
 }
 
 @keyframes pulse {
@@ -486,8 +939,5 @@ header {
 
 .btn-close-dice {
     margin-top: 20px;
-    background: #2c2c3c;
-    color: #bbb;
     font-size: 13px;
-    border: 1px solid #444;
 }
