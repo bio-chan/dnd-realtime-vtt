@@ -6,7 +6,7 @@
     <title>D&D Virtual Tabletop</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Fira+Code:wght@500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -257,29 +257,49 @@
             <div id="entities-list" class="cards-container"></div>
         </section>
 
-        <!-- RIGHT: DM Panel -->
-        <section id="dm-panel" class="panel panel-dm hidden">
-            <div class="panel-header"><h3>DM Command</h3></div>
-            <div class="dm-box">
-                <div class="dm-box-title">Summon Monster / NPC</div>
-                <div class="input-stack">
-                    <input type="text" id="mon-name" placeholder="ชื่อ (เช่น Goblin King)">
-                    <div class="dual-inputs" style="grid-template-columns:1fr 1fr 1fr;">
-                        <input type="number" id="mon-hp" placeholder="Max HP">
-                        <input type="number" id="mon-sp" placeholder="Max SP">
-                        <input type="number" id="mon-ac" placeholder="AC" value="12">
-                    </div>
-                    <input type="number" id="mon-init" placeholder="Initiative">
-                </div>
-                <button onclick="addMonster()" class="btn-primary btn-full">Summon to Battlefield</button>
+        <!-- RIGHT: Character HUD (Player) / DM Command (DM) -->
+        <section id="right-panel" class="panel panel-right">
+            <!-- Tabs for DM: switch between DM Command and Character HUD -->
+            <div id="right-panel-tabs" class="panel-tabs hidden">
+                <button type="button" class="tab-btn active" id="tab-btn-dm" onclick="switchRightTab('dm')">DM Command</button>
+                <button type="button" class="tab-btn" id="tab-btn-hud" onclick="switchRightTab('hud')">Party Roster</button>
             </div>
-            <div class="dm-box" style="margin-top:14px;">
-                <div class="dm-box-title">Create Event</div>
-                <div class="input-stack">
-                    <input type="text" id="evt-name" placeholder="ชื่อ Event (เช่น ต่อรองกับพ่อค้า)">
-                    <input type="text" id="evt-desc" placeholder="รายละเอียด (เช่น ทอย CHA check)">
+
+            <!-- TAB 1: DM Panel (visible if DM) -->
+            <div id="dm-tab-content">
+                <div class="panel-header"><h3>DM Command</h3></div>
+                <div class="dm-box">
+                    <div class="dm-box-title">Summon Monster / NPC</div>
+                    <div class="input-stack">
+                        <input type="text" id="mon-name" placeholder="ชื่อ (เช่น Goblin King)">
+                        <div class="dual-inputs" style="grid-template-columns:1fr 1fr 1fr;">
+                            <input type="number" id="mon-hp" placeholder="Max HP">
+                            <input type="number" id="mon-sp" placeholder="Max SP">
+                            <input type="number" id="mon-ac" placeholder="AC" value="12">
+                        </div>
+                        <input type="number" id="mon-init" placeholder="Initiative">
+                    </div>
+                    <button onclick="addMonster()" class="btn-primary btn-full">Summon to Battlefield</button>
                 </div>
-                <button onclick="createEvent()" class="btn-secondary btn-full">Create Event</button>
+                <div class="dm-box" style="margin-top:12px;">
+                    <div class="dm-box-title">Create Event</div>
+                    <div class="input-stack">
+                        <input type="text" id="evt-name" placeholder="ชื่อ Event (เช่น ต่อรองกับพ่อค้า)">
+                        <input type="text" id="evt-desc" placeholder="รายละเอียด (เช่น ทอย CHA check)">
+                    </div>
+                    <button onclick="createEvent()" class="btn-secondary btn-full">Create Event</button>
+                </div>
+            </div>
+
+            <!-- TAB 2 / Default for Player: Character Info & Inventory HUD -->
+            <div id="hud-tab-content" class="hud-content">
+                <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3 id="hud-title">My Character</h3>
+                    <button onclick="showCharSheet()" class="btn-metal btn-small" style="font-size:10px;">Edit</button>
+                </div>
+                <div id="player-hud-body" class="player-hud-body">
+                    <div style="color:var(--txt2);font-size:12px;text-align:center;padding:20px;">กำลังโหลดข้อมูล...</div>
+                </div>
             </div>
         </section>
     </div>

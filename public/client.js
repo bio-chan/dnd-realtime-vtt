@@ -176,14 +176,158 @@ socket.on('roomJoined', ({ roomCode, role, state, username }) => {
     document.getElementById('display-room-code').innerText = roomCode;
     document.getElementById('display-role').innerText = role;
     if (role === 'DM') {
-        document.getElementById('dm-panel').classList.remove('hidden');
-        document.getElementById('dm-combat-controls').classList.remove('hidden');
-        document.getElementById('dm-save-controls').classList.remove('hidden');
-        document.getElementById('dm-screen-btn').classList.remove('hidden');
+        document.getElementById('right-panel-tabs')?.classList.remove('hidden');
+        document.getElementById('dm-combat-controls')?.classList.remove('hidden');
+        document.getElementById('dm-save-controls')?.classList.remove('hidden');
+        document.getElementById('dm-screen-btn')?.classList.remove('hidden');
+        switchRightTab('dm');
+    } else {
+        document.getElementById('right-panel-tabs')?.classList.add('hidden');
+        document.getElementById('dm-combat-controls')?.classList.add('hidden');
+        document.getElementById('dm-save-controls')?.classList.add('hidden');
+        document.getElementById('dm-screen-btn')?.classList.add('hidden');
+        switchRightTab('hud');
     }
     renderState();
 });
-socket.on('updateState', state => { gameState = state; renderState(); });
+socket.on('updateState', state => {
+    gameState = state;
+    renderState();
+    if (currentRightTab === 'hud') renderPlayerHud();
+});
+
+// ========== RIGHT PANEL TABS & CHARACTER HUD ==========
+let currentRightTab = 'hud';
+let viewingHudUsername = null;
+
+function switchRightTab(tab) {
+    currentRightTab = tab;
+    const isDm = tab === 'dm';
+    document.getElementById('dm-tab-content')?.classList.toggle('hidden', !isDm);
+    document.getElementById('hud-tab-content')?.classList.toggle('hidden', isDm);
+    document.getElementById('tab-btn-dm')?.classList.toggle('active', isDm);
+    document.getElementById('tab-btn-hud')?.classList.toggle('active', !isDm);
+    if (!isDm) {
+        renderPlayerHud();
+    }
+}
+
+function selectHudCharacter(username) {
+    viewingHudUsername = username;
+    switchRightTab('hud');
+    renderPlayerHud();
+}
+
+function renderPlayerHud() {
+    const targetUser = (myRole === 'DM' && viewingHudUsername) ? viewingHudUsername : myUsername;
+    if (!targetUser) return;
+
+    socket.emit('getCharacterSheet', { username: targetUser }, res => {
+        if (res.error) return;
+        const c = res.character;
+        const body = document.getElementById('player-hud-body');
+        if (!body) return;
+
+        const portraitHtml = c.portrait
+            ? `<img src="${c.portrait}" class="hud-portrait">`
+            : `<div class="hud-portrait-ph">NO PORTRAIT</div>`;
+
+        const st = c.stats || {};
+        const mod = s => fmtMod(calcMod(st[s] || 10));
+
+        const statsHtml = ['STR','DEX','CON','INT','WIS','CHA'].map(s => `
+            <div class="hud-stat-box" onclick="quickStatCheck('${s}')" title="คลิกเพื่อทอย ${s} Check" style="cursor:pointer;">
+                <div class="hud-stat-name">${s}</div>
+                <div class="hud-stat-val">${st[s]||10}</div>
+                <div class="hud-stat-mod">${mod(s)}</div>
+            </div>
+        `).join('');
+
+        const invHtml = (c.inventory && c.inventory.length > 0)
+            ? c.inventory.map(it => `<span class="tag" style="background:#090c14;margin:2px;">${it.name} x${it.qty}</span>`).join('')
+            : '<span style="color:#666;font-style:italic;">กระเป๋าว่างเปล่า</span>';
+
+        const ent = gameState.entities?.find(e => e.username === targetUser);
+        const curHp = ent ? ent.hp : (c.hp || 20);
+        const curMaxHp = ent ? ent.maxHp : (c.maxHp || 20);
+        const curSp = ent ? ent.sp : (c.sp || 10);
+        const curMaxSp = ent ? ent.maxSp : (c.maxSp || 10);
+        const hpPct = curMaxHp > 0 ? Math.max(0, Math.min(100, (curHp / curMaxHp) * 100)) : 0;
+        const spPct = curMaxSp > 0 ? Math.max(0, Math.min(100, (curSp / curMaxSp) * 100)) : 0;
+
+        document.getElementById('hud-title').textContent = (targetUser === myUsername) ? 'My Character' : `Hero: ${c.name || targetUser}`;
+
+        body.innerHTML = `
+            <div class="hud-profile-box">
+                ${portraitHtml}
+                <div class="hud-hero-info">
+                    <div class="hud-hero-name">${c.name || targetUser}</div>
+                    <div class="hud-hero-sub">${c.race || 'Hero'} / ${c.charClass || 'Adventurer'}</div>
+                    <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
+                        <span class="ac-badge">AC ${c.ac || 10}</span>
+                        <span class="tag" style="font-size:10px;">SPD ${c.speed || '30ft'}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vitals -->
+            <div class="hud-info-section">
+                <div class="bar-label">
+                    <span style="color:var(--ruby-b);font-weight:700;">HP</span>
+                    <span style="font-family:var(--fv);font-size:16px;">${curHp}/${curMaxHp}</span>
+                </div>
+                <div class="bar-bg"><div class="hp-fill" style="width:${hpPct}%"></div></div>
+
+                <div class="bar-label" style="margin-top:4px;">
+                    <span style="color:var(--mana-b);font-weight:700;">SP</span>
+                    <span style="font-family:var(--fv);font-size:16px;">${curSp}/${curMaxSp}</span>
+                </div>
+                <div class="bar-bg"><div class="sp-fill" style="width:${spPct}%"></div></div>
+            </div>
+
+            <!-- 6 Ability Scores -->
+            <div class="hud-stats-grid">
+                ${statsHtml}
+            </div>
+
+            <!-- Equipment -->
+            <div class="hud-info-section">
+                <div class="hud-info-section-title">EQUIPMENT</div>
+                <div style="display:flex;justify-content:space-between;font-size:11.5px;">
+                    <div><b>อาวุธ:</b> ${c.weapon || '-'}</div>
+                    <div><b>เกราะ:</b> ${c.armor || '-'}</div>
+                </div>
+            </div>
+
+            <!-- Inventory -->
+            <div class="hud-info-section">
+                <div class="hud-info-section-title">INVENTORY (${c.inventory?.length || 0})</div>
+                <div style="display:flex;flex-wrap:wrap;gap:2px;">
+                    ${invHtml}
+                </div>
+            </div>
+
+            <!-- Skills & Ultimate -->
+            ${c.skills || c.ultimate ? `
+                <div class="hud-info-section">
+                    <div class="hud-info-section-title">SKILLS & ULTIMATE</div>
+                    ${c.skills ? `<div style="font-size:11px;margin-bottom:3px;"><b>สกิล:</b> ${c.skills}</div>` : ''}
+                    ${c.ultimate ? `<div style="font-size:11px;color:var(--gold-b);"><b>อัลตี้:</b> ${c.ultimate}</div>` : ''}
+                </div>
+            ` : ''}
+
+            <!-- Story / Traits -->
+            ${c.background || c.pros || c.cons ? `
+                <div class="hud-info-section">
+                    <div class="hud-info-section-title">STORY & TRAITS</div>
+                    ${c.background ? `<div style="font-size:11px;line-height:1.4;margin-bottom:3px;">${c.background}</div>` : ''}
+                    ${c.pros ? `<div style="font-size:11px;color:#a5d6a7;"><b>ข้อดี:</b> ${c.pros}</div>` : ''}
+                    ${c.cons ? `<div style="font-size:11px;color:#ff8a80;"><b>ข้อเสีย:</b> ${c.cons}</div>` : ''}
+                </div>
+            ` : ''}
+        `;
+    });
+}
 
 // ========== DICE & D&D MECHANICS ==========
 let currentRollMode = 'NORMAL';
@@ -408,20 +552,23 @@ function renderState() {
             ? ent.statuses.map((s, si) => isDM ? `<span class="tag removable" onclick="event.stopPropagation();dmAction('UPDATE_ENTITY',{id:'${ent.id}',removeStatus:${si}})">${s} x</span>` : `<span class="tag">${s}</span>`).join('')
             : '<span style="color:#555;">-</span>';
 
-        const clickView = ent.username ? `onclick="viewCharSheet('${ent.username}')"` : '';
+        const isPlayer = ent.type === 'PLAYER';
+        const clickView = ent.username ? `onclick="selectHudCharacter('${ent.username}')"` : '';
+        const inspectBtn = ent.username ? `<button class="btn-metal btn-small" style="font-size:10px;padding:2px 6px;" onclick="event.stopPropagation();viewCharSheet('${ent.username}')">Inspect</button>` : '';
 
         return `
-            <div class="entity-card ${isMonster?'monster':''} ${isTurn?'active-turn':''}" ${clickView}>
+            <div class="entity-card ${isMonster?'monster':''} ${isTurn?'active-turn':''}" ${clickView} title="${isPlayer?'คลิกเพื่อดูข้อมูลตัวละครในแถบขวา':''}">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                    <div>${isTurn?'<span class="turn-badge">TURN</span>':''}<strong style="font-family:var(--fh);font-size:15px;color:#fff;">${ent.name}</strong> <span style="font-size:11px;color:var(--gold);font-family:var(--fh);">${ent.type}</span></div>
+                    <div>${isTurn?'<span class="turn-badge">TURN</span>':''}<strong style="font-family:var(--fs);font-size:13px;color:#fff;">${ent.name}</strong> <span style="font-size:10px;color:var(--gold-b);font-family:var(--fp);">${ent.type}</span></div>
                     <div style="display:flex;align-items:center;gap:6px;">
                         ${acBadge}
                         <span class="init-badge" title="Initiative">${ent.initiative}</span>
+                        ${inspectBtn}
                     </div>
                 </div>
                 ${hpHtml}${spHtml}
                 ${deathSavesHtml}
-                <div style="font-size:12px;margin-top:4px;color:#bbb;">Status: ${statusTags}</div>
+                <div style="font-size:11.5px;margin-top:4px;color:#bbb;">Status: ${statusTags}</div>
                 ${dmTools}
             </div>`;
     }).join('');
