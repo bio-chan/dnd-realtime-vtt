@@ -97,10 +97,12 @@
                 </table>
             </div>
             <div class="cs-panel">
-                <div class="cs-panel-title">VITALS</div>
-                <div class="vitals-row">
+                <div class="cs-panel-title">VITALS & COMBAT STATS</div>
+                <div class="vitals-row" style="grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
                     <div><label class="vital-label hp-label">HP</label><input type="number" id="cs-hp" value="20" class="vital-input"></div>
                     <div><label class="vital-label sp-label">SP</label><input type="number" id="cs-sp" value="10" class="vital-input"></div>
+                    <div><label class="vital-label" style="color:var(--gold-b);">AC</label><input type="number" id="cs-ac" value="10" class="vital-input"></div>
+                    <div><label class="vital-label" style="color:#81c784;font-size:13px;">SPEED</label><input type="text" id="cs-speed" value="30ft" class="vital-input" style="font-size:16px;"></div>
                 </div>
             </div>
             <div class="cs-panel">
@@ -181,6 +183,7 @@
             <div id="combat-indicator" class="combat-pill hidden"><span class="pill-label">COMBAT</span><span class="combat-on">ACTIVE</span></div>
         </div>
         <div class="header-right">
+            <button id="dm-screen-btn" onclick="openDmScreen()" class="btn-metal hidden" style="border-color:var(--gold-b);color:var(--gold-l);font-weight:800;" title="DM Screen: ภาพรวมปาร์ตี้และข้อมูลตัวละครทั้งหมด">DM Screen</button>
             <button id="my-sheet-btn" onclick="viewCharSheet(myUsername)" class="btn-metal" title="ดูข้อมูลตัวละคร">My Sheet</button>
             <button id="sound-btn" onclick="toggleSound()" class="btn-metal" title="เปิด/ปิดเสียง">Sound: ON</button>
             <div id="dm-save-controls" class="hidden" style="display:inline-flex;gap:6px;">
@@ -198,9 +201,20 @@
             <div id="dice-lock-banner" class="dice-lock-banner hidden">ยังไม่ถึงตาของคุณ</div>
             <div id="event-banner" class="event-banner hidden"></div>
             <div class="dice-controls">
-                <div class="mod-container">
-                    <label for="dice-mod">Modifier (+/-):</label>
-                    <input type="number" id="dice-mod" value="0">
+                <div class="dnd-roll-modes">
+                    <button type="button" class="roll-mode-btn active" id="mode-normal" onclick="setRollMode('NORMAL')">Normal</button>
+                    <button type="button" class="roll-mode-btn" id="mode-adv" onclick="setRollMode('ADVANTAGE')">Advantage</button>
+                    <button type="button" class="roll-mode-btn" id="mode-disadv" onclick="setRollMode('DISADVANTAGE')">Disadvantage</button>
+                </div>
+                <div class="mod-container" style="display:flex;gap:8px;align-items:center;margin:6px 0;">
+                    <div style="flex:1;">
+                        <label for="dice-mod">Modifier (+/-):</label>
+                        <input type="number" id="dice-mod" value="0">
+                    </div>
+                    <div style="flex:1.6;">
+                        <label for="dice-reason">เหตุผล / สกิล:</label>
+                        <input type="text" id="dice-reason" placeholder="เช่น โจมตีขวาน, STR Save">
+                    </div>
                 </div>
                 <div class="dice-buttons">
                     <button onclick="roll(4)" class="die-btn">d4</button>
@@ -210,6 +224,17 @@
                     <button onclick="roll(12)" class="die-btn">d12</button>
                     <button onclick="roll(20)" class="die-btn d20">d20</button>
                     <button onclick="roll(100)" class="die-btn">d100</button>
+                </div>
+                <div class="dnd-quick-checks">
+                    <span style="font-size:11px;color:var(--gold);font-family:var(--fh);">Quick Checks:</span>
+                    <button type="button" class="tag" onclick="quickCheck('Attack', 0)">Attack</button>
+                    <button type="button" class="tag" onclick="quickStatCheck('STR')">STR</button>
+                    <button type="button" class="tag" onclick="quickStatCheck('DEX')">DEX</button>
+                    <button type="button" class="tag" onclick="quickStatCheck('CON')">CON</button>
+                    <button type="button" class="tag" onclick="quickStatCheck('INT')">INT</button>
+                    <button type="button" class="tag" onclick="quickStatCheck('WIS')">WIS</button>
+                    <button type="button" class="tag" onclick="quickStatCheck('CHA')">CHA</button>
+                    <button type="button" class="tag" onclick="quickCheck('Death Save', 0)">Death Save</button>
                 </div>
             </div>
             <div id="latest-roll" class="roll-banner"><span class="banner-hint">เลือกลูกเต๋าเพื่อเริ่มทอย</span></div>
@@ -225,6 +250,8 @@
                     <button onclick="dmAction('SORT_INITIATIVE')" class="btn-metal btn-small">Sort Initiative</button>
                     <button onclick="dmAction('NEXT_TURN')" class="btn-primary btn-small">Next Turn</button>
                     <button onclick="dmAction('END_COMBAT')" class="btn-metal btn-small">End Combat</button>
+                    <button onclick="dmAction('SHORT_REST')" class="btn-metal btn-small" title="Short Rest: ฟื้น +30% HP/SP">Short Rest</button>
+                    <button onclick="dmAction('LONG_REST')" class="btn-metal btn-small" title="Long Rest: ฟื้นฟู 100% HP/SP">Long Rest</button>
                 </div>
             </div>
             <div id="entities-list" class="cards-container"></div>
@@ -237,9 +264,10 @@
                 <div class="dm-box-title">Summon Monster / NPC</div>
                 <div class="input-stack">
                     <input type="text" id="mon-name" placeholder="ชื่อ (เช่น Goblin King)">
-                    <div class="dual-inputs">
+                    <div class="dual-inputs" style="grid-template-columns:1fr 1fr 1fr;">
                         <input type="number" id="mon-hp" placeholder="Max HP">
                         <input type="number" id="mon-sp" placeholder="Max SP">
+                        <input type="number" id="mon-ac" placeholder="AC" value="12">
                     </div>
                     <input type="number" id="mon-init" placeholder="Initiative">
                 </div>
@@ -289,6 +317,22 @@
         <div class="corner-ornament bottom-right"></div>
         <button class="modal-close btn-metal" onclick="closeCharModal()">X</button>
         <div id="charview-body" class="charview-body"></div>
+    </div>
+</div>
+
+<!-- ==================== DM SCREEN MODAL ==================== -->
+<div id="dmscreen-modal" class="modal-overlay hidden" onclick="closeDmScreen()">
+    <div class="modal-content altar-frame dmscreen-frame" onclick="event.stopPropagation()">
+        <div class="corner-ornament top-left"></div>
+        <div class="corner-ornament top-right"></div>
+        <div class="corner-ornament bottom-left"></div>
+        <div class="corner-ornament bottom-right"></div>
+        <div class="dmscreen-head">
+            <h2 class="fantasy-title" style="font-size:22px;margin:0;">DUNGEON MASTER SCREEN</h2>
+            <button class="modal-close btn-metal" onclick="closeDmScreen()">X</button>
+        </div>
+        <p class="section-desc" style="margin-bottom:14px;">ภาพรวมปาร์ตี้และข้อมูลตัวละครทั้งหมดในสมรภูมิ (DM Master View)</p>
+        <div id="dmscreen-body" class="dmscreen-body"></div>
     </div>
 </div>
 

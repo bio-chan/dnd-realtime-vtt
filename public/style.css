@@ -219,3 +219,28 @@ button:active { filter: brightness(.95); transform: translateY(1px); }
 .cv-stats-table td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.04); }
 .cv-stats-table .mod { font-family: var(--fm); color: var(--gold-l); font-weight: 700; text-align: center; }
 .cv-inv-item { display: flex; justify-content: space-between; padding: 3px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,.04); }
+
+/* ==================== D&D 5E ROLL MODES & QUICK CHECKS ==================== */
+.dnd-roll-modes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 6px; }
+.roll-mode-btn { font-size: 11px; padding: 6px 4px; background: rgba(30,24,38,0.8); border: 1px solid #4a3e5c; color: var(--txt2); border-radius: 4px; }
+.roll-mode-btn.active { background: linear-gradient(180deg, #3d2f1f, #221a10); border-color: var(--gold-b); color: var(--gold-l); font-weight: 800; box-shadow: 0 0 10px rgba(212,175,55,0.3); }
+#mode-adv.active { border-color: #4caf50; color: #a5d6a7; background: linear-gradient(180deg, #19381c, #0d220f); }
+#mode-disadv.active { border-color: #e53935; color: #ff8a80; background: linear-gradient(180deg, #3d1414, #220808); }
+
+.dnd-quick-checks { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(212,175,55,0.15); }
+.dnd-quick-checks .tag { cursor: pointer; transition: all .2s; }
+.dnd-quick-checks .tag:hover { border-color: var(--gold); color: #fff; background: rgba(212,175,55,0.15); }
+
+/* Combat badges */
+.ac-badge { font-family: var(--fm); font-size: 12px; font-weight: 700; background: linear-gradient(180deg, #282114, #181308); border: 1px solid var(--gold-b); color: var(--gold-l); padding: 2px 7px; border-radius: 4px; }
+.death-saves-box { margin: 6px 0; padding: 6px 8px; background: rgba(183,28,28,0.15); border: 1px solid var(--ruby); border-radius: 5px; font-size: 12px; }
+
+/* ==================== DM SCREEN MASTER VIEW ==================== */
+.dmscreen-frame { max-width: 1100px; width: 95%; }
+.dmscreen-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.dmscreen-section-title { font-family: var(--fh); font-size: 13px; letter-spacing: 1.5px; color: var(--gold); margin-bottom: 8px; }
+.dmscreen-table-wrap { overflow-x: auto; background: rgba(14,11,18,0.85); border: 1px solid var(--border-gold); border-radius: 6px; }
+.dmscreen-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.dmscreen-table th { font-family: var(--fh); font-size: 10.5px; letter-spacing: 1px; color: var(--gold); background: rgba(28,22,34,0.95); padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-gold); white-space: nowrap; }
+.dmscreen-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+.dmscreen-table tr:hover { background: rgba(212,175,55,0.04); }

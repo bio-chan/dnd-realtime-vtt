@@ -2,95 +2,59 @@
 
 เว็บแอปพลิเคชันระบบกระดานเสมือนจำลองสำหรับเล่น D&D แบบ Real-time ผ่าน Web Browser รองรับธีม Dark Fantasy สไตล์ Baldur's Gate 3 / D&D Beyond เต็มรูปแบบ พร้อมระบบล็อกอินสร้างตัวละคร ทอยเต๋า 3 มิติ และระบบจัดการการต่อสู้สำหรับ Dungeon Master
 
----
-
-## ฟีเจอร์เด่น (Key Features)
-
-1. **ธีม Dark Fantasy RPG:**
-   - ดีไซน์สวยงามระดับพรีเมียม โทนสีทองโบราณ (Gold), แดงทับทิม (Ruby), และน้ำเงินคริสตัล (Mana)
-   - ฟอนต์ Cinzel, Sarabun, Fira Code สะอาดตา ไม่มี Emoji กวนสายตา
-
-2. **ระบบบัญชีและ Character Sheet ครบวงจร:**
-   - สมัครสมาชิก (Register) และเข้าสู่ระบบ (Login) ด้วย Username & Password
-   - ระบบ Character Sheet ที่สร้างตามแบบฉบับ D&D:
-     - อัปโหลดรูปภาพตัวละคร (Portrait) ปรับขนาดและเก็บภาพอัตโนมัติ
-     - ข้อมูลตัวละคร: ชื่อ, เผ่า (Race), อาชีพ (Class), ส่วนสูง
-     - ค่าพลังหลัก 6 ด้าน (STR, DEX, CON, INT, WIS, CHA) พร้อมคำนวณโบนัส Modifier (+/-) อัตโนมัติ
-     - Vitals: ค่า HP (Hit Points) และ SP (Spell Points)
-     - สกิลความสามารถ (Skills) และท่าไม้ตาย (Ultimate)
-     - ภูมิหลังเรื่องราว (Story & Background), ข้อดี และข้อเสีย
-     - อุปกรณ์สวมใส่: อาวุธ (Weapon), ชุดเกราะ (Armor)
-     - กระเป๋าไอเทม (Inventory) พร้อมระบบระบุจำนวนสิ่งของ
-
-3. **ระบบสิทธิ์ DM และการตรวจสอบตัวละคร:**
-   - Dungeon Master (DM) สามารถเปิดดูและแก้ไข Character Sheet ของผู้เล่นทุกคนในห้องได้แบบ Real-time
-   - ผู้เล่น (Player) สามารถเปิดดูและแก้ไข Character Sheet ของตัวเองได้
-
-4. **ระบบทอยลูกเต๋า 3 มิติ (3D Animated Dice Roller & Audio):**
-   - ลูกเต๋ามาตรฐานครบชุด: `d4`, `d6`, `d8`, `d10`, `d12`, `d20`, `d100`
-   - แอนิเมชันลูกเต๋า 3D หมุนสมจริงกลางหน้าจอ พร้อมเสียงทอยเต๋าแบบสังเคราะห์ (Web Audio API)
-   - ระบบตรวจจับ Natural 20 (Critical Success แสงสีทองพร้อมเสียง Fanfare) และ Natural 1 (Critical Fail แสงสีแดงพร้อมเสียง Thud)
-   - ทุกคนที่อยู่ในห้องจะเห็นผลการทอยและแอนิเมชันลูกเต๋าไปพร้อมๆ กัน
-
-5. **ระบบทอยลูกเต๋าตามเทิร์น (Turn-based Dice Restriction) & ระบบ Event:**
-   - เมื่อ DM สั่งเริ่มการต่อสู้ (Combat) ผู้เล่นจะสามารถทอยลูกเต๋าได้เฉพาะเมื่อถึงรอบ (Turn) ของตัวเองเท่านั้น
-   - DM สามารถสร้าง **Event** (เช่น "ต่อรองกับพ่อค้า", "กระโดดข้ามหน้าผา") เพื่อปลดล็อกให้ทุกคนทอยลูกเต๋าพร้อมกันได้ทันทีแม้อยู่ในการต่อสู้
-   - DM มีสิทธิ์ทอยลูกเต๋าได้ตลอดเวลาโดยไม่มีข้อจำกัด
-
-6. **ระบบสมรภูมิและการต่อสู้ (Battlefield & Initiative Tracker):**
-   - DM สามารถอัญเชิญ Monster / NPC เข้าสู่สมรภูมิได้
-   - ระบบ **ซ่อน/เปิดเผย HP มอนสเตอร์ (Monster HP Concealment):** DM สามารถคลิก Reveal HP หรือ Hide HP เพื่อให้ผู้เล่นเห็นหรือซ่อนหลอดเลือดของมอนสเตอร์แต่ละตัวได้
-   - ระบบจัดการ Initiative, สลับเทิร์น (Next Turn), ปรับค่า HP/SP และจัดการสถานะ (Status Buff/Debuff)
-
-7. **ระบบ Save & Load Session:**
-   - DM สามารถ Export สถานะเกมทั้งหมดเป็นไฟล์ `.json` เพื่อบันทึกความคืบหน้า และนำกลับมาโหลดต่อรอบถัดไปได้ทันที
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
 ---
 
-## โครงสร้างโปรเจกต์ (Project Structure)
+## ฟีเจอร์เด่นสำหรับ D&D (D&D Mechanics & Features)
 
-```plaintext
-DnD/
-├── package.json       # Express 4, Socket.io 4
-├── server.js          # Backend Server (Auth, Character CRUD, Room & Turn Logic, Socket.io Sync)
-├── public/
-│   ├── index.html     # โครงสร้างหน้าจอ (Auth, Sheet Editor, Lobby, Game Tabletop, Modals)
-│   ├── style.css      # Dark Fantasy RPG CSS, 3D Keyframe Animations, Glassmorphism
-│   └── client.js      # ระบบเชื่อมต่อ Socket, ทอยเต๋า 3D, Web Audio Synthesizer, Modal Editor
-├── README.md          # เอกสารคู่มือโปรเจกต์
-└── .gitignore         # ละเว้น node_modules
+1. **ระบบบัญชีตั้งต้น (Default Accounts):**
+   - **Dungeon Master (DM):** Username: `dm` / Password: `1234`
+   - **Player (น้องเป็ดไวกิ้ง):** Username: `player1` / Password: `1234`
+   - หรือกดแท็บ **"สร้างบัญชีใหม่ (Register)"** เพื่อสร้างตัวละครของตัวเองได้ไม่จำกัด
+
+2. **Dungeon Master Screen (ฉากกั้นของ DM - GM เห็นข้อมูลทั้งหมด):**
+   - DM มีปุ่ม **"DM Screen"** ที่แถบเมนูด้านบน เพื่อเปิดตารางสรุปข้อมูลของทุกคนในห้อง:
+     - ชื่อ, เผ่า, อาชีพ, HP/Max HP (แถบสีเตือนสถานะเลือด), SP/Max SP
+     - **AC (Armor Class)** และ **Passive Perception** (10 + WIS mod)
+     - ค่าพลัง 6 ด้าน (STR, DEX, CON, INT, WIS, CHA) พร้อม Modifier (+/-)
+     - อาวุธ, เกราะ, สกิล, อัลติ และกระเป๋าไอเทม
+     - ข้อมูลมอนสเตอร์ทั้งหมด พร้อมค่า HP จริง (แม้ซ่อนจากผู้เล่น)
+     - ปุ่มกดดู/แก้ไขข้อมูลของตัวละครนั้นๆ ได้ทันที
+
+3. **ระบบกลไก D&D 5e แท้ (True D&D 5e Rules):**
+   - **Advantage & Disadvantage Roller:** เลือกทอยแบบปกติ (Normal), ได้เปรียบ (Advantage - ทอย 2 ลูกเลือกค่าสูงสุด), หรือเสียเปรียบ (Disadvantage - ทอย 2 ลูกเลือกค่าต่ำสุด)
+   - **D&D Quick Checks:** ปุ่มลัดทอย Attack, Ability Checks (STR, DEX, CON, INT, WIS, CHA) และ Death Save
+   - **Armor Class (AC) & Speed:** แสดงค่า AC บนการ์ดตัวละครและมอนสเตอร์ทุกตัวในสมรภูมิ
+   - **Death Saving Throws:** เมื่อ HP ลดเหลือ 0 จะปรากฏระบบทอยเซฟความตาย (Success 3 ครั้ง / Fail 3 ครั้ง)
+   - **D&D 5e Status Conditions:** เมนูดรอปดาวน์เลือกสถานะทางการทั้ง 14 แบบ เช่น *Blinded, Charmed, Frightened, Grappled, Invisible, Paralyzed, Poisoned, Prone, Stunned, Unconscious, Exhaustion*
+   - **Short Rest & Long Rest:** DM สามารถสั่งพักสั้น (+30% HP/SP) หรือพักยาว (ฟื้นฟู 100% เต็ม) ได้ด้วยคลิกเดียว
+
+4. **ระบบทอยลูกเต๋า 3 มิติ (3D Dice Roller) & ระบบ Event:**
+   - ทอยลูกเต๋า 3D พร้อมเสียงสังเคราะห์ (Web Audio API)
+   - เอฟเฟกต์ Natural 20 (Critical Success แสงสีทอง) และ Natural 1 (Critical Fail แสงสีแดง)
+   - ในช่วงต่อสู้ ล็อคไม่ให้ทอยถ้ายังไม่ถึงเทิร์น แต่ DM สามารถสร้าง **Event** (เช่น ต่อรอง, หลบกับดัก) เพื่อให้ทุกคนทอยพร้อมกันได้
+
+5. **ระบบซ่อน/เปิดเผย HP มอนสเตอร์:**
+   - DM ควบคุมได้ว่าจะเปิดเผย (Reveal) หรือซ่อน (Hide) หลอดเลือดของมอนสเตอร์ตัวใด
+
+---
+
+## วิธีติดตั้งและรันใช้งาน (Installation & Deployment)
+
+### 1. ใช้งานผ่านลิงก์ออนไลน์ทันที (Instant Live Link)
+- เข้าเล่นได้ทันทีผ่าน Tunnel: **https://social-trains-agree.loca.lt**
+*(หากมีหน้าแจ้งเตือน Password ให้กรอก IP โฮสต์: `184.82.86.73`)*
+
+### 2. นำขึ้น Cloud Hosting ฟรี (Render.com / Railway.app)
+- โปรเจกต์มีไฟล์ `render.yaml` และ `Dockerfile` รองรับแล้ว
+- เข้าที่ [Render.com](https://render.com) หรือ [Railway.app](https://railway.app)
+- เชื่อมต่อกับ GitHub Repo: `https://github.com/bio-chan/dnd-realtime-vtt`
+- สั่ง Deploy ได้ทันทีโดยไม่ต้องตั้งค่าเพิ่มเติม
+
+### 3. รันในเครื่อง (Localhost)
+```bash
+npm install
+npm start
 ```
-
----
-
-## วิธีติดตั้งและเริ่มใช้งาน (Installation & Quick Start)
-
-### วิธีที่ 1: รันในเครื่อง (Localhost)
-
-1. ติดตั้ง Dependencies:
-   ```bash
-   npm install
-   ```
-2. รันเซิร์ฟเวอร์:
-   ```bash
-   npm start
-   ```
-3. เปิด Web Browser ไปที่:
-   ```text
-   http://localhost:3000
-   ```
-
-### วิธีที่ 2: เล่นกับเพื่อนในวง LAN หรือ Wi-Fi เดียวกัน
-- หา IP เครื่องโฮสต์ (เช่น `192.168.1.xxx`)
-- ให้เพื่อนเปิดเบราว์เซอร์ไปที่:
-  ```text
-  http://192.168.1.xxx:3000
-  ```
-
-### วิธีที่ 3: นำขึ้น Online Cloud (Render.com / Railway.app)
-1. Fork หรือ Push โค้ดขึ้น GitHub Repository
-2. สร้าง Web Service ใหม่ใน Render หรือ Railway โดยเชื่อมกับ Repository
-3. ระบุ:
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-4. นำโดเมน URL ที่ได้ส่งให้เพื่อนในปาร์ตี้เข้าร่วมเล่นได้จากทั่วโลก
+เปิดเบราว์เซอร์ไปที่: `http://localhost:3000`

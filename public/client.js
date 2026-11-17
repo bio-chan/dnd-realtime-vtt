@@ -68,6 +68,8 @@ function loadCharToEditor(c) {
     document.getElementById('cs-armor').value = c.armor || '';
     document.getElementById('cs-hp').value = c.hp || 20;
     document.getElementById('cs-sp').value = c.sp || 10;
+    if (document.getElementById('cs-ac')) document.getElementById('cs-ac').value = c.ac || 10;
+    if (document.getElementById('cs-speed')) document.getElementById('cs-speed').value = c.speed || '30ft';
     if (c.stats) {
         ['str','dex','con','int','wis','cha'].forEach(s => {
             const el = document.getElementById('cs-' + s);
@@ -107,6 +109,8 @@ function getCharFromEditor() {
         armor: document.getElementById('cs-armor').value.trim(),
         hp: parseInt(document.getElementById('cs-hp').value) || 20,
         sp: parseInt(document.getElementById('cs-sp').value) || 10,
+        ac: parseInt(document.getElementById('cs-ac')?.value) || 10,
+        speed: document.getElementById('cs-speed')?.value.trim() || '30ft',
         stats: {
             STR: parseInt(document.getElementById('cs-str').value) || 10,
             DEX: parseInt(document.getElementById('cs-dex').value) || 10,
@@ -175,21 +179,62 @@ socket.on('roomJoined', ({ roomCode, role, state, username }) => {
         document.getElementById('dm-panel').classList.remove('hidden');
         document.getElementById('dm-combat-controls').classList.remove('hidden');
         document.getElementById('dm-save-controls').classList.remove('hidden');
+        document.getElementById('dm-screen-btn').classList.remove('hidden');
     }
     renderState();
 });
 socket.on('updateState', state => { gameState = state; renderState(); });
 
-// ========== DICE ==========
-function roll(diceType) { getAudio(); socket.emit('rollDice', { roomCode: currentRoom, diceType, modifier: document.getElementById('dice-mod').value }); }
+// ========== DICE & D&D MECHANICS ==========
+let currentRollMode = 'NORMAL';
+function setRollMode(mode) {
+    currentRollMode = mode;
+    ['mode-normal','mode-adv','mode-disadv'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
+    if (mode === 'NORMAL') document.getElementById('mode-normal')?.classList.add('active');
+    if (mode === 'ADVANTAGE') document.getElementById('mode-adv')?.classList.add('active');
+    if (mode === 'DISADVANTAGE') document.getElementById('mode-disadv')?.classList.add('active');
+}
+
+function quickCheck(reason, mod = 0) {
+    document.getElementById('dice-reason').value = reason;
+    document.getElementById('dice-mod').value = mod;
+    roll(20);
+}
+
+function quickStatCheck(stat) {
+    const el = document.getElementById('cs-' + stat.toLowerCase());
+    const score = el ? (parseInt(el.value) || 10) : 10;
+    const mod = calcMod(score);
+    quickCheck(stat + ' Check (' + fmtMod(mod) + ')', mod);
+}
+
+function roll(diceType) {
+    getAudio();
+    const modifier = document.getElementById('dice-mod').value;
+    const rollReason = document.getElementById('dice-reason')?.value.trim() || '';
+    socket.emit('rollDice', {
+        roomCode: currentRoom,
+        diceType,
+        modifier,
+        rollMode: currentRollMode,
+        rollReason
+    });
+}
 
 socket.on('diceRolled', log => {
     const modText = log.mod >= 0 ? '+' + log.mod : log.mod;
     const evtTag = log.eventName ? `<div style="font-size:11px;color:var(--mana-b);font-family:var(--fh);margin-top:2px;">[${log.eventName}]</div>` : '';
     const critTag = log.isNat20 ? ' <b style="color:var(--gold-b);">[NATURAL 20]</b>' : (log.isNat1 ? ' <b style="color:#ff5252;">[NATURAL 1]</b>' : '');
+    const reasonTag = log.rollReason ? `<div style="font-size:12px;color:var(--gold-l);font-family:var(--fh);">${log.rollReason}</div>` : '';
+    const modeTag = log.rollMode === 'ADVANTAGE' ? ' <span style="color:#a5d6a7;font-size:11px;">(Advantage)</span>' : (log.rollMode === 'DISADVANTAGE' ? ' <span style="color:#ff8a80;font-size:11px;">(Disadvantage)</span>' : '');
+
     document.getElementById('latest-roll').innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;">
-            <div style="font-family:var(--fh);color:var(--gold);font-size:13px;letter-spacing:1px;">${log.roller} -- ${log.dice}</div>
+            <div style="font-family:var(--fh);color:var(--gold);font-size:13px;letter-spacing:1px;">${log.roller} -- ${log.dice}${modeTag}</div>
+            ${reasonTag}
             <div style="font-family:var(--fm);font-size:30px;font-weight:900;color:var(--gold-b);text-shadow:0 0 15px rgba(255,215,0,.6);">${log.total}</div>
             <div style="font-size:12px;color:#aaa;font-family:var(--fm);">(${log.raw} ${modText})${critTag}</div>
             ${evtTag}
@@ -200,8 +245,9 @@ socket.on('diceRolled', log => {
 function show3DDice(log) {
     const overlay = document.getElementById('dice-overlay'), stage = document.querySelector('.dice-stage'), cube = document.getElementById('dice-cube');
     if (diceCloseTimer) clearTimeout(diceCloseTimer);
-    document.getElementById('dice-roller-title').innerText = `${log.roller} -- ${log.dice}`;
-    document.getElementById('dice-calc').innerText = `Roll: ${log.raw} | Mod: ${log.mod >= 0 ? '+' + log.mod : log.mod}`;
+    const modeDesc = log.rollMode === 'ADVANTAGE' ? ` [Adv: ${log.r1}, ${log.r2}]` : (log.rollMode === 'DISADVANTAGE' ? ` [Disadv: ${log.r1}, ${log.r2}]` : '');
+    document.getElementById('dice-roller-title').innerText = `${log.roller} -- ${log.dice}${modeDesc}`;
+    document.getElementById('dice-calc').innerText = `${log.rollReason ? log.rollReason + ' | ' : ''}Roll: ${log.raw} | Mod: ${log.mod >= 0 ? '+' + log.mod : log.mod}`;
     document.getElementById('dice-total-display').innerText = log.total;
     stage.classList.remove('nat20', 'nat1');
     const badge = document.getElementById('dice-special-badge'); badge.className = 'dice-special-badge'; badge.innerText = '';
@@ -229,10 +275,18 @@ socket.on('eventCreated', evt => {});
 // ========== DM ACTIONS ==========
 function dmAction(action, payload = {}) { socket.emit('dmAction', { roomCode: currentRoom, action, payload }); }
 function addMonster() {
-    const name = document.getElementById('mon-name').value.trim(), hp = document.getElementById('mon-hp').value, sp = document.getElementById('mon-sp').value, init = document.getElementById('mon-init').value;
+    const name = document.getElementById('mon-name').value.trim();
+    const hp = document.getElementById('mon-hp').value;
+    const sp = document.getElementById('mon-sp').value;
+    const ac = document.getElementById('mon-ac')?.value || 10;
+    const init = document.getElementById('mon-init').value;
     if (!name || !hp) return alert('กรุณากรอกชื่อและ HP');
-    dmAction('ADD_MONSTER', { name, hp, sp, initiative: init });
-    document.getElementById('mon-name').value = ''; document.getElementById('mon-hp').value = ''; document.getElementById('mon-sp').value = ''; document.getElementById('mon-init').value = '';
+    dmAction('ADD_MONSTER', { name, hp, sp, ac, initiative: init });
+    document.getElementById('mon-name').value = '';
+    document.getElementById('mon-hp').value = '';
+    document.getElementById('mon-sp').value = '';
+    document.getElementById('mon-ac').value = '12';
+    document.getElementById('mon-init').value = '';
 }
 
 // ========== RENDER ==========
@@ -289,6 +343,29 @@ function renderState() {
 
         let spHtml = `<div class="bar-label"><span style="color:#90caf9;">SP</span><span>${canSeeHp ? ent.sp+'/'+ent.maxSp : '???/???'}</span></div><div class="bar-bg"><div class="${canSeeHp?'sp-fill':'hp-hidden'}" style="width:${canSeeHp?spPct:100}%"></div></div>`;
 
+        const acVal = ent.ac || 10;
+        const acBadge = `<span class="ac-badge" title="Armor Class">AC ${acVal}</span>`;
+
+        let deathSavesHtml = '';
+        if (ent.hp <= 0 && ent.type === 'PLAYER') {
+            const ds = ent.deathSaves || { successes: 0, failures: 0 };
+            const dsControls = (isDM || ent.username === myUsername) ? `
+                <div style="margin-top:4px;display:flex;gap:4px;">
+                    <button class="btn-metal btn-small" onclick="event.stopPropagation();updateDeathSave('${ent.id}', true)">+Succ</button>
+                    <button class="btn-danger btn-small" onclick="event.stopPropagation();updateDeathSave('${ent.id}', false)">+Fail</button>
+                    <button class="btn-metal btn-small" onclick="event.stopPropagation();resetDeathSave('${ent.id}')">Reset</button>
+                </div>
+            ` : '';
+            deathSavesHtml = `
+                <div class="death-saves-box" onclick="event.stopPropagation()">
+                    <span style="font-size:11px;color:#ff8a80;font-weight:700;">Death Saves:</span>
+                    <span style="color:#a5d6a7;font-weight:700;">Success: ${ds.successes||0}/3</span> |
+                    <span style="color:#ff5252;font-weight:700;">Fail: ${ds.failures||0}/3</span>
+                    ${dsControls}
+                </div>
+            `;
+        }
+
         let dmTools = '';
         if (isDM) {
             const revealBtn = isMonster ? `<button onclick="event.stopPropagation();dmAction('TOGGLE_REVEAL_HP',{id:'${ent.id}'})" class="btn-toggle-reveal ${ent.revealHp?'revealed':''}">${ent.revealHp?'Hide HP':'Reveal HP'}</button>` : '';
@@ -301,8 +378,26 @@ function renderState() {
                     <span style="margin-left:4px;">SP:</span>
                     <button onclick="dmAction('UPDATE_ENTITY',{id:'${ent.id}',sp:${ent.sp-1}})">-1</button>
                     <button onclick="dmAction('UPDATE_ENTITY',{id:'${ent.id}',sp:${ent.sp+1}})">+1</button>
-                    <button onclick="promptStatus('${ent.id}')">+Status</button>
                     <button onclick="promptInit('${ent.id}',${ent.initiative})">Init</button>
+                    <select class="btn-metal btn-small" onchange="event.stopPropagation();if(this.value){dmAction('UPDATE_ENTITY',{id:'${ent.id}',addStatus:this.value});this.value='';}">
+                        <option value="">+Condition</option>
+                        <option value="Blinded">Blinded</option>
+                        <option value="Charmed">Charmed</option>
+                        <option value="Deafened">Deafened</option>
+                        <option value="Frightened">Frightened</option>
+                        <option value="Grappled">Grappled</option>
+                        <option value="Incapacitated">Incapacitated</option>
+                        <option value="Invisible">Invisible</option>
+                        <option value="Paralyzed">Paralyzed</option>
+                        <option value="Petrified">Petrified</option>
+                        <option value="Poisoned">Poisoned</option>
+                        <option value="Prone">Prone</option>
+                        <option value="Restrained">Restrained</option>
+                        <option value="Stunned">Stunned</option>
+                        <option value="Unconscious">Unconscious</option>
+                        <option value="Exhaustion">Exhaustion</option>
+                    </select>
+                    <button onclick="promptStatus('${ent.id}')">+Custom</button>
                     ${revealBtn}
                     <button class="btn-danger btn-small" onclick="dmAction('REMOVE_ENTITY',{id:'${ent.id}'})">Remove</button>
                     ${statusBadge}
@@ -319,18 +414,155 @@ function renderState() {
             <div class="entity-card ${isMonster?'monster':''} ${isTurn?'active-turn':''}" ${clickView}>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                     <div>${isTurn?'<span class="turn-badge">TURN</span>':''}<strong style="font-family:var(--fh);font-size:15px;color:#fff;">${ent.name}</strong> <span style="font-size:11px;color:var(--gold);font-family:var(--fh);">${ent.type}</span></div>
-                    <span class="init-badge">${ent.initiative}</span>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        ${acBadge}
+                        <span class="init-badge" title="Initiative">${ent.initiative}</span>
+                    </div>
                 </div>
                 ${hpHtml}${spHtml}
+                ${deathSavesHtml}
                 <div style="font-size:12px;margin-top:4px;color:#bbb;">Status: ${statusTags}</div>
                 ${dmTools}
             </div>`;
     }).join('');
 }
 
+function updateDeathSave(id, isSuccess) {
+    const ent = gameState.entities.find(e => e.id === id);
+    if (!ent) return;
+    const ds = ent.deathSaves || { successes: 0, failures: 0 };
+    if (isSuccess) ds.successes = Math.min(3, (ds.successes || 0) + 1);
+    else ds.failures = Math.min(3, (ds.failures || 0) + 1);
+    dmAction('UPDATE_ENTITY', { id, deathSaves: ds });
+}
+function resetDeathSave(id) {
+    dmAction('UPDATE_ENTITY', { id, deathSaves: { successes: 0, failures: 0 } });
+}
+
 function promptStatus(id) { const s = prompt('ชื่อสถานะ:'); if (s?.trim()) dmAction('UPDATE_ENTITY', { id, addStatus: s.trim() }); }
 function promptInit(id, cur) { const v = prompt('Initiative:', cur); if (v !== null && v !== '') { const n = parseInt(v); if (!isNaN(n)) dmAction('UPDATE_ENTITY', { id, initiative: n }); } }
 function closeActiveEvent(eventId) { socket.emit('closeEvent', { roomCode: currentRoom, eventId }); }
+
+// ========== DM SCREEN OVERVIEW ==========
+function openDmScreen() {
+    socket.emit('getPartyOverview', { roomCode: currentRoom }, res => {
+        if (res.error) return alert(res.error);
+        renderDmScreen(res.party, res.entities);
+    });
+}
+
+function closeDmScreen() {
+    document.getElementById('dmscreen-modal').classList.add('hidden');
+}
+
+function renderDmScreen(party, entities) {
+    const body = document.getElementById('dmscreen-body');
+    const playerEntities = entities.filter(e => e.type === 'PLAYER');
+    const monsterEntities = entities.filter(e => e.type === 'MONSTER');
+
+    let html = `
+        <div class="dmscreen-section-title">PARTY MEMBERS (${playerEntities.length})</div>
+        <div class="dmscreen-table-wrap">
+            <table class="dmscreen-table">
+                <thead>
+                    <tr>
+                        <th>ตัวละคร</th>
+                        <th>ผู้เล่น</th>
+                        <th>HP</th>
+                        <th>SP</th>
+                        <th>AC</th>
+                        <th>Passive Perc.</th>
+                        <th>STR</th>
+                        <th>DEX</th>
+                        <th>CON</th>
+                        <th>INT</th>
+                        <th>WIS</th>
+                        <th>CHA</th>
+                        <th>อาวุธ / เกราะ</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    playerEntities.forEach(ent => {
+        const ch = party[ent.username] || {};
+        const st = ch.stats || {};
+        const wis = st.WIS || 10;
+        const passPerc = 10 + calcMod(wis);
+        const hpColor = (ent.hp <= 0) ? '#ff5252' : ((ent.hp <= ent.maxHp * 0.5) ? '#ffa726' : '#a5d6a7');
+
+        html += `
+            <tr>
+                <td><strong>${ent.name}</strong><br><span style="font-size:11px;color:var(--txt2);">${ch.race||'-'} ${ch.charClass||'-'}</span></td>
+                <td><span class="tag">${ent.username}</span></td>
+                <td><b style="color:${hpColor}">${ent.hp}/${ent.maxHp}</b></td>
+                <td><b style="color:var(--mana-b)">${ent.sp}/${ent.maxSp}</b></td>
+                <td><span class="ac-badge">${ent.ac || ch.ac || 10}</span></td>
+                <td style="text-align:center;"><b>${passPerc}</b></td>
+                <td>${st.STR||10} (${fmtMod(calcMod(st.STR||10))})</td>
+                <td>${st.DEX||10} (${fmtMod(calcMod(st.DEX||10))})</td>
+                <td>${st.CON||10} (${fmtMod(calcMod(st.CON||10))})</td>
+                <td>${st.INT||10} (${fmtMod(calcMod(st.INT||10))})</td>
+                <td>${st.WIS||10} (${fmtMod(calcMod(st.WIS||10))})</td>
+                <td>${st.CHA||10} (${fmtMod(calcMod(st.CHA||10))})</td>
+                <td style="font-size:11px;">${ch.weapon||'-'} / ${ch.armor||'-'}</td>
+                <td>
+                    <button class="btn-metal btn-small" onclick="viewCharSheet('${ent.username}')">ดู/แก้ไข</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    if (monsterEntities.length > 0) {
+        html += `
+            <div class="dmscreen-section-title" style="margin-top:16px;">MONSTERS & NPCS (${monsterEntities.length})</div>
+            <div class="dmscreen-table-wrap">
+                <table class="dmscreen-table">
+                    <thead>
+                        <tr>
+                            <th>ชื่อมอนสเตอร์</th>
+                            <th>HP จริง (DM View)</th>
+                            <th>SP</th>
+                            <th>AC</th>
+                            <th>Initiative</th>
+                            <th>สถานะการเปิดเผย HP</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        monsterEntities.forEach(m => {
+            html += `
+                <tr>
+                    <td><strong>${m.name}</strong></td>
+                    <td><b style="color:#ff8a80;">${m.hp}/${m.maxHp}</b></td>
+                    <td><b style="color:#90caf9;">${m.sp}/${m.maxSp}</b></td>
+                    <td><span class="ac-badge">${m.ac || 10}</span></td>
+                    <td>${m.initiative}</td>
+                    <td>${m.revealHp ? '<span class="tag-revealed">ผู้เล่นมองเห็น</span>' : '<span class="tag-locked">ผู้เล่นมองไม่เห็น (???)</span>'}</td>
+                    <td>
+                        <button class="btn-metal btn-small" onclick="dmAction('TOGGLE_REVEAL_HP',{id:'${m.id}'})">${m.revealHp?'ซ่อน HP':'เปิดเผย HP'}</button>
+                    </td>
+                </tr>
+            `;
+        });
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    body.innerHTML = html;
+    document.getElementById('dmscreen-modal').classList.remove('hidden');
+}
 
 // ========== CHARACTER VIEW & EDIT MODAL ==========
 let viewingCharData = null;

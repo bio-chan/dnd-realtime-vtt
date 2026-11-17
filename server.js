@@ -18,7 +18,9 @@ const accounts = {
             background: 'ผู้คุมชะตากรรมของทุกสรรพสิ่งในสมรภูมิ',
             pros: 'ควบคุมกฎทั้งหมด', cons: 'ต้องคอยระวังผู้เล่นออกนอกลู่นอกทาง',
             stats: { STR: 20, DEX: 20, CON: 20, INT: 20, WIS: 20, CHA: 20 },
+            ac: 18, speed: '30ft',
             hp: 999, maxHp: 999, sp: 999, maxSp: 999,
+            deathSaves: { successes: 0, failures: 0 },
             weapon: 'Staff of Fate', armor: 'Robe of Eternity',
             inventory: [{ name: 'D&D Rulebook', qty: 1 }, { name: 'Master Dice Set', qty: 7 }]
         }
@@ -32,7 +34,9 @@ const accounts = {
             background: 'โดนขับไล่ออกจากเผ่ามังกรเนื่องจากเกิดเป็นเป็ดเพราะแม่เป็นมังกรพ่อเป็นเป็ด',
             pros: 'จุดไฟติด 100% พูดได้ทุกภาษา', cons: 'พูดภาษามังกรไม่ได้',
             stats: { STR: 10, DEX: 13, CON: 14, INT: 12, WIS: 8, CHA: 15 },
+            ac: 12, speed: '30ft',
             hp: 10, maxHp: 10, sp: 10, maxSp: 10,
+            deathSaves: { successes: 0, failures: 0 },
             weapon: 'ขวาน', armor: 'เกราะ',
             inventory: [
                 { name: 'อาหารแห้ง', qty: 10 },
@@ -56,7 +60,9 @@ function defaultChar(name) {
         name: name || 'Adventurer', race: '', charClass: '', height: '',
         portrait: '', skills: '', ultimate: '', background: '', pros: '', cons: '',
         stats: { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 },
+        ac: 10, speed: '30ft',
         hp: 20, maxHp: 20, sp: 10, maxSp: 10,
+        deathSaves: { successes: 0, failures: 0 },
         weapon: '', armor: '',
         inventory: []
     };
@@ -89,8 +95,10 @@ io.on('connection', (socket) => {
     socket.on('saveCharacter', (data, cb) => {
         if (!currentUser || !accounts[currentUser]) return cb?.({ error: 'ไม่ได้ล็อกอิน' });
         const c = accounts[currentUser].character;
-        const fields = ['name','race','charClass','height','portrait','skills','ultimate','background','pros','cons','weapon','armor'];
+        const fields = ['name','race','charClass','height','portrait','skills','ultimate','background','pros','cons','weapon','armor','speed'];
         fields.forEach(f => { if (data[f] !== undefined) c[f] = data[f]; });
+        if (data.ac !== undefined) c.ac = Math.max(0, parseInt(data.ac) || 10);
+        if (data.deathSaves) c.deathSaves = data.deathSaves;
         if (data.stats) {
             for (const s of ['STR','DEX','CON','INT','WIS','CHA']) {
                 if (data.stats[s] !== undefined) c.stats[s] = Math.max(1, Math.min(30, parseInt(data.stats[s]) || 10));
@@ -107,6 +115,8 @@ io.on('connection', (socket) => {
                 if (data.name) ent.name = data.name;
                 if (data.hp !== undefined) { ent.hp = c.hp; ent.maxHp = c.maxHp; }
                 if (data.sp !== undefined) { ent.sp = c.sp; ent.maxSp = c.maxSp; }
+                if (data.ac !== undefined) ent.ac = c.ac;
+                if (data.deathSaves) ent.deathSaves = c.deathSaves;
                 io.to(code).emit('updateState', rooms[code]);
             }
         }
@@ -149,14 +159,16 @@ io.on('connection', (socket) => {
             name: ch.name || currentUser,
             hp: ch.hp || 20, maxHp: ch.maxHp || 20,
             sp: ch.sp || 10, maxSp: ch.maxSp || 10,
+            ac: ch.ac || 10, speed: ch.speed || '30ft',
+            deathSaves: ch.deathSaves || { successes: 0, failures: 0 },
             initiative: 0, statuses: [], revealHp: true
         });
         socket.emit('roomJoined', { roomCode: code, role: 'PLAYER', state: room, username: currentUser });
         io.to(code).emit('updateState', room);
     });
 
-    // ---- DICE (turn-based + event bypass) ----
-    socket.on('rollDice', ({ roomCode, diceType, modifier }) => {
+    // ---- DICE (turn-based + event bypass + Advantage/Disadvantage) ----
+    socket.on('rollDice', ({ roomCode, diceType, modifier, rollMode = 'NORMAL', rollReason = '' }) => {
         if (!currentUser) return;
         const code = (roomCode || '').toUpperCase().trim();
         const room = rooms[code]; if (!room) return;
@@ -172,7 +184,15 @@ io.on('connection', (socket) => {
         }
 
         const sides = parseInt(diceType) || 20;
-        const raw = Math.floor(Math.random() * sides) + 1;
+        const r1 = Math.floor(Math.random() * sides) + 1;
+        const r2 = Math.floor(Math.random() * sides) + 1;
+        let raw = r1;
+        if (rollMode === 'ADVANTAGE') {
+            raw = Math.max(r1, r2);
+        } else if (rollMode === 'DISADVANTAGE') {
+            raw = Math.min(r1, r2);
+        }
+
         const mod = parseInt(modifier) || 0;
         const total = raw + mod;
         const activeEvt = room.events.find(e => e.active);
@@ -181,6 +201,8 @@ io.on('connection', (socket) => {
             id: 'r' + Date.now(), time: new Date().toLocaleTimeString(),
             roller: isDM ? 'DM' : (accounts[currentUser]?.character?.name || currentUser),
             dice: `d${sides}`, diceSides: sides, raw, mod, total,
+            rollMode, rollReason,
+            r1, r2: rollMode !== 'NORMAL' ? r2 : null,
             isNat20: sides === 20 && raw === 20, isNat1: sides === 20 && raw === 1,
             eventName: activeEvt ? activeEvt.name : null
         };
@@ -218,11 +240,11 @@ io.on('connection', (socket) => {
 
         switch (action) {
             case 'ADD_MONSTER': {
-                const hp = parseInt(payload.hp) || 10, sp = parseInt(payload.sp) || 0;
+                const hp = parseInt(payload.hp) || 10, sp = parseInt(payload.sp) || 0, ac = parseInt(payload.ac) || 10;
                 room.entities.push({
                     id: 'mon_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
                     username: null, type: 'MONSTER', name: payload.name || 'Monster',
-                    hp, maxHp: hp, sp, maxSp: sp,
+                    hp, maxHp: hp, sp, maxSp: sp, ac,
                     initiative: parseInt(payload.initiative) || 0, statuses: [], revealHp: false
                 });
                 break;
@@ -237,10 +259,33 @@ io.on('connection', (socket) => {
                 if (t) {
                     if (payload.hp !== undefined) t.hp = Math.max(0, Math.min(t.maxHp, parseInt(payload.hp)));
                     if (payload.sp !== undefined) t.sp = Math.max(0, Math.min(t.maxSp, parseInt(payload.sp)));
+                    if (payload.ac !== undefined) t.ac = Math.max(0, parseInt(payload.ac));
                     if (payload.initiative !== undefined) t.initiative = parseInt(payload.initiative) || 0;
+                    if (payload.deathSaves) t.deathSaves = payload.deathSaves;
                     if (payload.addStatus) t.statuses.push(payload.addStatus);
                     if (payload.removeStatus !== undefined) t.statuses.splice(payload.removeStatus, 1);
                 }
+                break;
+            }
+            case 'SHORT_REST': {
+                room.entities.forEach(e => {
+                    const healHp = Math.max(1, Math.floor(e.maxHp * 0.3));
+                    const healSp = Math.max(1, Math.floor(e.maxSp * 0.3));
+                    e.hp = Math.min(e.maxHp, e.hp + healHp);
+                    e.sp = Math.min(e.maxSp, e.sp + healSp);
+                    if (e.deathSaves) e.deathSaves = { successes: 0, failures: 0 };
+                });
+                room.logs.unshift({ id: 'r'+Date.now(), time: new Date().toLocaleTimeString(), roller: 'DM', dice: 'REST', raw: 0, mod: 0, total: 'Short Rest Completed (+30% HP/SP)', isNat20: false, isNat1: false });
+                break;
+            }
+            case 'LONG_REST': {
+                room.entities.forEach(e => {
+                    e.hp = e.maxHp;
+                    e.sp = e.maxSp;
+                    if (e.deathSaves) e.deathSaves = { successes: 0, failures: 0 };
+                    e.statuses = e.statuses.filter(s => s.toLowerCase() !== 'unconscious');
+                });
+                room.logs.unshift({ id: 'r'+Date.now(), time: new Date().toLocaleTimeString(), roller: 'DM', dice: 'REST', raw: 0, mod: 0, total: 'Long Rest Completed (Full Heal)', isNat20: false, isNat1: false });
                 break;
             }
             case 'REMOVE_ENTITY':
@@ -268,10 +313,23 @@ io.on('connection', (socket) => {
         io.to(code).emit('updateState', room);
     });
 
-    // ---- CHARACTER SHEET VIEW / DM EDIT ----
+    // ---- CHARACTER SHEET VIEW / DM EDIT / DM SCREEN OVERVIEW ----
     socket.on('getCharacterSheet', ({ username }, cb) => {
         if (!accounts[username]) return cb?.({ error: 'ไม่พบผู้ใช้' });
         cb?.({ character: accounts[username].character });
+    });
+
+    socket.on('getPartyOverview', ({ roomCode }, cb) => {
+        const code = (roomCode || '').toUpperCase().trim();
+        const room = rooms[code];
+        if (!room || room.dmUsername !== currentUser) return cb?.({ error: 'เฉพาะ DM เท่านั้น' });
+        const party = {};
+        room.entities.forEach(ent => {
+            if (ent.username && accounts[ent.username]) {
+                party[ent.username] = accounts[ent.username].character;
+            }
+        });
+        cb?.({ party, entities: room.entities });
     });
 
     socket.on('dmEditCharacter', ({ roomCode, targetUsername, changes }) => {
@@ -280,8 +338,10 @@ io.on('connection', (socket) => {
         if (!room || room.dmUsername !== currentUser) return;
         if (!accounts[targetUsername]) return;
         const ch = accounts[targetUsername].character;
-        const fields = ['name','race','charClass','height','skills','ultimate','background','pros','cons','weapon','armor'];
+        const fields = ['name','race','charClass','height','skills','ultimate','background','pros','cons','weapon','armor','speed'];
         fields.forEach(f => { if (changes[f] !== undefined) ch[f] = changes[f]; });
+        if (changes.ac !== undefined) ch.ac = Math.max(0, parseInt(changes.ac) || 10);
+        if (changes.deathSaves) ch.deathSaves = changes.deathSaves;
         if (changes.stats) {
             for (const s of ['STR','DEX','CON','INT','WIS','CHA']) {
                 if (changes.stats[s] !== undefined) ch.stats[s] = Math.max(1, Math.min(30, parseInt(changes.stats[s]) || 10));
@@ -295,6 +355,8 @@ io.on('connection', (socket) => {
             if (changes.name) ent.name = changes.name;
             if (changes.hp !== undefined) { ent.hp = parseInt(changes.hp); ent.maxHp = ent.hp; }
             if (changes.sp !== undefined) { ent.sp = parseInt(changes.sp); ent.maxSp = ent.sp; }
+            if (changes.ac !== undefined) ent.ac = ch.ac;
+            if (changes.deathSaves) ent.deathSaves = ch.deathSaves;
         }
         io.to(code).emit('updateState', room);
     });
