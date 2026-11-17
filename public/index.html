@@ -31,19 +31,27 @@
     <!-- หน้าจอหลักในห้องเกม -->
     <div id="game-screen" class="hidden">
         <header>
-            <div>ห้อง: <strong id="display-room-code"></strong> | บทบาท: <span id="display-role" class="badge"></span></div>
-            <div id="dm-save-controls" class="hidden">
-                <button onclick="exportSave()">💾 Save Game (JSON)</button>
-                <input type="file" id="import-file" accept=".json" onchange="importSave(event)" style="display:none">
-                <button onclick="document.getElementById('import-file').click()">📂 Load Save</button>
+            <div class="header-left">
+                <span>ห้อง: <strong id="display-room-code"></strong></span>
+                <span class="divider">|</span>
+                <span>บทบาท: <span id="display-role" class="badge"></span></span>
+            </div>
+            <div class="header-right">
+                <button id="sound-btn" onclick="toggleSound()" class="btn-icon" title="เปิด/ปิดเสียง">🔊 เสียง: เปิด</button>
+                <div id="dm-save-controls" class="hidden" style="display:inline-block;">
+                    <button onclick="exportSave()" class="btn-small">💾 Save Game</button>
+                    <input type="file" id="import-file" accept=".json" onchange="importSave(event)" style="display:none">
+                    <button onclick="document.getElementById('import-file').click()" class="btn-small">📂 Load Save</button>
+                </div>
             </div>
         </header>
 
         <div class="main-grid">
             <!-- ซ้าย: ระบบทอยลูกเต๋า -->
             <section class="panel">
-                <h3>🎲 ทอยลูกเต๋า (Dice Roller)</h3>
+                <h3>🎲 ทอยลูกเต๋า 3D (Dice Roller)</h3>
                 <div class="dice-controls">
+                    <label style="font-size: 13px; color: #aaa;">Modifier (+/-):</label>
                     <input type="number" id="dice-mod" value="0" placeholder="Modifier (+/-)">
                     <div class="dice-buttons">
                         <button onclick="roll(4)">d4</button>
@@ -62,9 +70,9 @@
             <!-- กลาง: ลำดับการต่อสู้ & การ์ดตัวละคร -->
             <section class="panel">
                 <div class="panel-header">
-                    <h3>⚔️ ลำดับการต่อสู้ & สถานะ (Combat & Cards)</h3>
+                    <h3>⚔️ ลำดับการต่อสู้ & สนามรบ</h3>
                     <div id="dm-combat-controls" class="hidden">
-                        <button onclick="dmAction('SORT_INITIATIVE')">เรียงลำดับ (Initiative)</button>
+                        <button onclick="dmAction('SORT_INITIATIVE')">⚡ เรียง Initiative</button>
                         <button onclick="dmAction('NEXT_TURN')" class="btn-primary">เทิร์นถัดไป ⏭️</button>
                     </div>
                 </div>
@@ -75,18 +83,47 @@
             <section id="dm-panel" class="panel hidden">
                 <h3>👑 แผงควบคุม DM</h3>
                 <div class="dm-box">
-                    <h4>เพิ่มมอนสเตอร์ / NPC</h4>
-                    <input type="text" id="mon-name" placeholder="ชื่อมอนสเตอร์ (เช่น Goblin)">
-                    <input type="number" id="mon-hp" placeholder="HP">
-                    <input type="number" id="mon-mana" placeholder="Mana">
-                    <input type="number" id="mon-init" placeholder="Initiative">
-                    <button onclick="addMonster()" class="btn-primary">+ เพิ่มลงสนาม</button>
+                    <h4>+ เพิ่มมอนสเตอร์ / NPC</h4>
+                    <input type="text" id="mon-name" placeholder="ชื่อมอนสเตอร์ (เช่น Goblin King)">
+                    <input type="number" id="mon-hp" placeholder="Max HP">
+                    <input type="number" id="mon-mana" placeholder="Max Mana (ถ้ามี)">
+                    <input type="number" id="mon-init" placeholder="Initiative เริ่มต้น">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin: 8px 0; color:#ddd; cursor:pointer;">
+                        <input type="checkbox" id="mon-reveal-hp" style="width:auto; margin:0;">
+                        <span>อนุญาตให้ผู้เล่นเห็นเลือดทันที</span>
+                    </label>
+                    <button onclick="addMonster()" class="btn-primary" style="width:100%;">+ เพิ่มลงสนามรบ</button>
                 </div>
             </section>
+        </div>
+    </div>
+
+    <!-- 3D Dice Roll Animation Overlay -->
+    <div id="dice-overlay" class="dice-overlay hidden" onclick="closeDiceOverlay()">
+        <div class="dice-stage" onclick="event.stopPropagation()">
+            <div id="dice-roller-title" class="dice-roller-title">Adventurer ทอย d20</div>
+            
+            <div class="dice-scene">
+                <div id="dice-cube" class="dice-3d">
+                    <div class="face front" id="face-front">?</div>
+                    <div class="face back" id="face-back">?</div>
+                    <div class="face right" id="face-right">?</div>
+                    <div class="face left" id="face-left">?</div>
+                    <div class="face top" id="face-top">?</div>
+                    <div class="face bottom" id="face-bottom">?</div>
+                </div>
+            </div>
+
+            <div id="dice-result-details" class="dice-result-details">
+                <div id="dice-calc" class="dice-calc"></div>
+                <div id="dice-total-display" class="dice-total-display">--</div>
+                <div id="dice-special-badge" class="dice-special-badge"></div>
+            </div>
+            
+            <button onclick="closeDiceOverlay()" class="btn-close-dice">ปิดหน้าต่าง (หรือคลิกด้านนอก)</button>
         </div>
     </div>
 
     <script src="client.js"></script>
 </body>
 </html>
-

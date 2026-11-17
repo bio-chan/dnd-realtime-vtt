@@ -9,7 +9,7 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// เก็บข้อมูลห้องทั้งหมดใน Memory (สามารถ Export เป็น JSON เพื่อ Save ได้)
+// เก็บข้อมูลห้องทั้งหมดใน Memory
 const rooms = {};
 
 function generateRoomCode() {
@@ -45,7 +45,6 @@ io.on('connection', (socket) => {
         }
         socket.join(roomCode);
 
-        // เพิ่มตัวละครผู้เล่นเข้าสู่ระบบห้อง
         const charData = character || {};
         const hp = parseInt(charData.hp, 10) || 20;
         const mana = parseInt(charData.mana, 10) || 10;
@@ -59,7 +58,8 @@ io.on('connection', (socket) => {
             maxMana: mana,
             initiative: 0,
             statuses: [],
-            inventory: []
+            inventory: [],
+            revealHp: true // ผู้เล่นเปิดเผยเลือดปกติ
         };
         room.entities.push(newPlayer);
 
@@ -67,34 +67,41 @@ io.on('connection', (socket) => {
         io.to(roomCode).emit('updateState', room);
     });
 
-    // 3. ระบบทอยลูกเต๋า (ทุกคนเห็นพร้อมกัน)
+    // 3. ระบบทอยลูกเต๋า (ทุกคนเห็น 3D และได้ยินเสียงพร้อมกัน)
     socket.on('rollDice', ({ roomCode, rollerName, diceType, modifier }) => {
         if (!roomCode) return;
-        const room = rooms[roomCode.toUpperCase().trim()];
+        const code = roomCode.toUpperCase().trim();
+        const room = rooms[code];
         if (!room) return;
 
         const diceSides = parseInt(diceType, 10) || 20;
         const rawRoll = Math.floor(Math.random() * diceSides) + 1;
         const mod = parseInt(modifier, 10) || 0;
         const total = rawRoll + mod;
+        const isNat20 = diceSides === 20 && rawRoll === 20;
+        const isNat1 = diceSides === 20 && rawRoll === 1;
 
         const logEntry = {
+            id: 'roll_' + Date.now(),
             time: new Date().toLocaleTimeString(),
             roller: rollerName || 'Anonymous',
             dice: `d${diceSides}`,
+            diceSides: diceSides,
             raw: rawRoll,
             mod: mod,
-            total: total
+            total: total,
+            isNat20: isNat20,
+            isNat1: isNat1
         };
 
         room.logs.unshift(logEntry);
         if (room.logs.length > 50) room.logs.pop();
 
-        io.to(roomCode.toUpperCase().trim()).emit('diceRolled', logEntry);
-        io.to(roomCode.toUpperCase().trim()).emit('updateState', room);
+        io.to(code).emit('diceRolled', logEntry);
+        io.to(code).emit('updateState', room);
     });
 
-    // 4. คำสั่งเฉพาะ DM (แก้ไขค่า, เพิ่มมอนสเตอร์, จัดลำดับ, โหลดเซฟ)
+    // 4. คำสั่งเฉพาะ DM (แก้ไขค่า, เพิ่มมอนสเตอร์, ซ่อน/แสดงเลือด, จัดลำดับ, โหลดเซฟ)
     socket.on('dmAction', ({ roomCode, action, payload = {} }) => {
         if (!roomCode) return;
         const code = roomCode.toUpperCase().trim();
@@ -116,8 +123,17 @@ io.on('connection', (socket) => {
                     maxMana: mana,
                     initiative: init,
                     statuses: [],
-                    inventory: []
+                    inventory: [],
+                    revealHp: false // ค่าเริ่มต้น: ผู้เล่นยังไม่เห็นเลือดมอนสเตอร์จนกว่า DM จะอนุญาต
                 });
+                break;
+            }
+
+            case 'TOGGLE_REVEAL_HP': {
+                const target = room.entities.find(e => e.id === payload.id);
+                if (target && target.type === 'MONSTER') {
+                    target.revealHp = !target.revealHp;
+                }
                 break;
             }
 
@@ -135,6 +151,7 @@ io.on('connection', (socket) => {
                     if (payload.removeItem !== undefined && target.inventory[payload.removeItem] !== undefined) {
                         target.inventory.splice(payload.removeItem, 1);
                     }
+                    if (payload.revealHp !== undefined) target.revealHp = !!payload.revealHp;
                 }
                 break;
             }
@@ -170,4 +187,3 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`D&D Server running on port ${PORT}`));
-

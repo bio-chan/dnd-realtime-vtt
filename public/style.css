@@ -1,191 +1,493 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #121212;
+    background: #101014;
     color: #e0e0e0;
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
 }
+
 .hidden {
     display: none !important;
 }
+
 .container {
     max-width: 500px;
     margin: 50px auto;
     text-align: center;
     padding: 0 15px;
 }
+
 .card-box {
-    background: #1e1e1e;
-    padding: 25px;
-    border-radius: 10px;
-    border: 1px solid #333;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    background: #1c1c24;
+    padding: 30px;
+    border-radius: 12px;
+    border: 1px solid #2e2e3d;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
 }
+
 .lobby-section {
-    margin: 15px 0;
-}
-hr {
-    border: 0;
-    border-top: 1px solid #333;
     margin: 20px 0;
 }
-input {
-    width: 90%;
-    padding: 10px;
-    margin: 8px 0;
-    background: #2c2c2c;
-    border: 1px solid #444;
-    color: #fff;
-    border-radius: 5px;
-    box-sizing: border-box;
-    font-size: 14px;
+
+hr {
+    border: 0;
+    border-top: 1px solid #2e2e3d;
+    margin: 25px 0;
 }
-input:focus {
+
+input[type="text"], input[type="number"] {
+    width: 90%;
+    padding: 12px;
+    margin: 8px 0;
+    background: #282836;
+    border: 1px solid #424258;
+    color: #fff;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 15px;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus, input[type="number"]:focus {
     outline: none;
     border-color: #b71c1c;
+    box-shadow: 0 0 8px rgba(183, 28, 28, 0.4);
 }
+
 button {
-    padding: 10px 15px;
+    padding: 10px 16px;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
     margin: 4px;
-    transition: opacity 0.2s, transform 0.1s;
+    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
 }
+
 button:hover {
-    opacity: 0.9;
+    opacity: 0.92;
+    transform: translateY(-1px);
 }
+
 button:active {
-    transform: scale(0.98);
+    transform: translateY(1px);
 }
+
 .btn-primary {
-    background: #b71c1c;
+    background: linear-gradient(135deg, #d32f2f, #8e0000);
     color: white;
+    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
 }
+
 .btn-secondary {
-    background: #1565c0;
+    background: linear-gradient(135deg, #1976d2, #0d47a1);
     color: white;
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
 }
+
+.btn-icon {
+    background: #282836;
+    color: #ffd54f;
+    border: 1px solid #444;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 13px;
+    background: #333344;
+    color: #e0e0e0;
+}
+
 header {
-    background: #1a1a1a;
-    padding: 15px 25px;
+    background: #16161e;
+    padding: 12px 25px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid #b71c1c;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
+
+.header-left, .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.divider {
+    color: #555;
+    margin: 0 5px;
+}
+
 .badge {
     background: #b71c1c;
-    padding: 3px 8px;
+    padding: 4px 10px;
     border-radius: 4px;
     font-weight: bold;
+    letter-spacing: 0.5px;
 }
+
 .main-grid {
     display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-columns: 1.1fr 2fr 1fr;
     gap: 15px;
     padding: 20px;
 }
-@media (max-width: 900px) {
+
+@media (max-width: 1024px) {
     .main-grid {
         grid-template-columns: 1fr;
     }
 }
+
 .panel {
-    background: #1e1e1e;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #333;
+    background: #181822;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #2c2c3e;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
+
 .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
+
 .dice-controls {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
+
 .dice-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 6px;
+    margin-top: 8px;
 }
+
 .dice-buttons button {
-    background: #333;
+    background: #2a2a3a;
     color: #fff;
-    font-size: 16px;
-    min-width: 48px;
-    padding: 8px 12px;
+    font-size: 15px;
+    min-width: 50px;
+    padding: 9px 12px;
+    border: 1px solid #3c3c52;
 }
+
 .dice-buttons button.d20 {
-    background: #d32f2f;
+    background: linear-gradient(135deg, #e53935, #b71c1c);
+    border-color: #ff5252;
+    font-size: 17px;
+    font-weight: 800;
 }
+
 .roll-banner {
-    background: #263238;
-    padding: 15px;
-    margin: 10px 0;
-    border-radius: 6px;
-    font-size: 18px;
+    background: #222230;
+    padding: 14px;
+    margin: 12px 0;
+    border-radius: 8px;
+    font-size: 16px;
     text-align: center;
-    border: 1px solid #455a64;
+    border: 1px solid #393950;
     min-height: 24px;
 }
+
 .log-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    max-height: 300px;
+    max-height: 320px;
     overflow-y: auto;
-    font-size: 14px;
+    font-size: 13.5px;
 }
+
 .log-list li {
-    padding: 6px;
-    border-bottom: 1px solid #2c2c2c;
+    padding: 8px;
+    border-bottom: 1px solid #232332;
+    display: flex;
+    justify-content: space-between;
 }
+
 .entity-card {
-    background: #252525;
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 6px;
-    border-left: 5px solid #555;
-    transition: border-left-color 0.3s;
+    background: #1e1e2a;
+    padding: 14px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border-left: 5px solid #4a4a60;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
+
+.entity-card.monster {
+    border-left-color: #ff9800;
+}
+
 .entity-card.active-turn {
-    border-left-color: #ffd600;
-    background: #2e2b18;
+    border-left-color: #ffd600 !important;
+    background: #2a2818;
+    box-shadow: 0 0 15px rgba(255, 214, 0, 0.25);
 }
+
 .bar-bg {
-    background: #444;
-    height: 12px;
-    border-radius: 6px;
+    background: #2c2c3c;
+    height: 14px;
+    border-radius: 7px;
     overflow: hidden;
-    margin: 4px 0 8px 0;
+    margin: 5px 0 10px 0;
+    position: relative;
+    border: 1px solid #3a3a4e;
 }
+
 .hp-fill {
-    background: #e53935;
+    background: linear-gradient(90deg, #ff5252, #c62828);
     height: 100%;
-    transition: width 0.3s ease-in-out;
+    transition: width 0.4s ease-out;
 }
+
+.hp-hidden {
+    background: repeating-linear-gradient(
+        45deg,
+        #3e2723,
+        #3e2723 10px,
+        #4e342e 10px,
+        #4e342e 20px
+    );
+    height: 100%;
+    width: 100%;
+}
+
 .mana-fill {
-    background: #1e88e5;
+    background: linear-gradient(90deg, #42a5f5, #1565c0);
     height: 100%;
-    transition: width 0.3s ease-in-out;
+    transition: width 0.4s ease-out;
 }
+
 .tag {
     display: inline-block;
-    background: #424242;
-    padding: 2px 8px;
+    background: #333346;
+    padding: 3px 8px;
     border-radius: 4px;
     font-size: 12px;
     margin: 2px;
 }
+
 .tag.removable {
     cursor: pointer;
 }
+
 .tag.removable:hover {
     background: #d32f2f;
 }
 
+.tag-hp-locked {
+    background: #bf360c;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: 6px;
+}
+
+.tag-hp-revealed {
+    background: #2e7d32;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: 6px;
+}
+
+.btn-toggle-reveal {
+    background: #37474f;
+    color: #eceff1;
+    border: 1px solid #546e7a;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+.btn-toggle-reveal.revealed {
+    background: #1b5e20;
+    border-color: #2e7d32;
+}
+
+/* ===================================================
+   3D Animated Dice Roller Overlay
+=================================================== */
+.dice-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(8, 8, 12, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeInOverlay 0.25s ease-out;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.dice-stage {
+    background: #181824;
+    border: 2px solid #3c3c54;
+    border-radius: 16px;
+    padding: 30px 40px;
+    text-align: center;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
+    max-width: 420px;
+    width: 90%;
+    position: relative;
+    overflow: hidden;
+}
+
+.dice-roller-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffca28;
+    margin-bottom: 25px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+}
+
+.dice-scene {
+    width: 120px;
+    height: 120px;
+    margin: 20px auto 35px auto;
+    perspective: 700px;
+}
+
+.dice-3d {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transform: rotateX(-20deg) rotateY(30deg);
+}
+
+.dice-3d.rolling {
+    animation: rollDiceAnim 1.4s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes rollDiceAnim {
+    0% {
+        transform: translateY(-80px) scale(0.6) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+    }
+    30% {
+        transform: translateY(20px) scale(1.15) rotateX(720deg) rotateY(540deg) rotateZ(360deg);
+    }
+    60% {
+        transform: translateY(-20px) scale(0.95) rotateX(1200deg) rotateY(900deg) rotateZ(600deg);
+    }
+    85% {
+        transform: translateY(5px) scale(1.03) rotateX(1420deg) rotateY(1060deg) rotateZ(710deg);
+    }
+    100% {
+        transform: translateY(0) scale(1) rotateX(1440deg) rotateY(1080deg) rotateZ(720deg);
+    }
+}
+
+.dice-3d .face {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(145deg, #b71c1c, #d32f2f);
+    border: 3px solid #ff7961;
+    border-radius: 18px;
+    font-size: 42px;
+    font-weight: 900;
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    box-sizing: border-box;
+}
+
+/* 6 Faces of the 3D Die */
+.face.front  { transform: rotateY(0deg) translateZ(60px); }
+.face.back   { transform: rotateY(180deg) translateZ(60px); }
+.face.right  { transform: rotateY(90deg) translateZ(60px); }
+.face.left   { transform: rotateY(-90deg) translateZ(60px); }
+.face.top    { transform: rotateX(90deg) translateZ(60px); }
+.face.bottom { transform: rotateX(-90deg) translateZ(60px); }
+
+/* Critical 20 & 1 Stylings */
+.dice-stage.nat20 {
+    border-color: #ffd700;
+    box-shadow: 0 0 45px rgba(255, 215, 0, 0.6), inset 0 0 25px rgba(255, 215, 0, 0.2);
+}
+.dice-stage.nat20 .face {
+    background: linear-gradient(145deg, #ff8f00, #ffb300);
+    border-color: #fff9c4;
+    color: #1a0000;
+}
+
+.dice-stage.nat1 {
+    border-color: #d50000;
+    box-shadow: 0 0 45px rgba(213, 0, 0, 0.7), inset 0 0 25px rgba(213, 0, 0, 0.3);
+}
+.dice-stage.nat1 .face {
+    background: linear-gradient(145deg, #212121, #424242);
+    border-color: #d50000;
+    color: #ff5252;
+}
+
+.dice-result-details {
+    margin-top: 15px;
+}
+
+.dice-calc {
+    font-size: 16px;
+    color: #aaa;
+    margin-bottom: 5px;
+}
+
+.dice-total-display {
+    font-size: 48px;
+    font-weight: 900;
+    color: #ffd600;
+    text-shadow: 0 0 20px rgba(255, 214, 0, 0.6);
+    line-height: 1.1;
+}
+
+.dice-special-badge {
+    margin-top: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    min-height: 24px;
+}
+
+.dice-special-badge.nat20-text {
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    animation: pulse 1s infinite alternate;
+}
+
+.dice-special-badge.nat1-text {
+    color: #ff5252;
+    text-shadow: 0 0 10px rgba(255, 82, 82, 0.8);
+}
+
+@keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.08); }
+}
+
+.btn-close-dice {
+    margin-top: 20px;
+    background: #2c2c3c;
+    color: #bbb;
+    font-size: 13px;
+    border: 1px solid #444;
+}
