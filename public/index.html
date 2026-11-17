@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D&D Real-time Virtual Tabletop</title>
-    <!-- Dark Fantasy Typography -->
+    <title>D&D Virtual Tabletop</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Fira+Code:wght@500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,17 +11,144 @@
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-    <!-- Background Magic Glow Texture -->
-    <div class="bg-arcane-overlay"></div>
+<div class="bg-arcane-overlay"></div>
 
-    <!-- หน้า Lobby สร้าง/เข้าห้อง -->
-    <div id="lobby-screen" class="container">
-        <div class="lobby-brand">
-            <div class="brand-crest">⚔️ ⚜️ ⚔️</div>
-            <h1 class="fantasy-title">D&D Virtual Tabletop</h1>
-            <p class="fantasy-subtitle">Realm of Legends • Real-time Adventure Simulator</p>
+<!-- ==================== SCREEN 1: LOGIN / REGISTER ==================== -->
+<div id="auth-screen" class="container">
+    <div class="lobby-brand">
+        <div class="brand-crest">--- D&D ---</div>
+        <h1 class="fantasy-title">Virtual Tabletop</h1>
+        <p class="fantasy-subtitle">Realm of Legends</p>
+    </div>
+    <div class="card-box altar-frame">
+        <div class="corner-ornament top-left"></div>
+        <div class="corner-ornament top-right"></div>
+        <div class="corner-ornament bottom-left"></div>
+        <div class="corner-ornament bottom-right"></div>
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">เข้าสู่ระบบ</button>
+            <button class="auth-tab" onclick="switchAuthTab('register')">สร้างบัญชีใหม่</button>
         </div>
-        
+
+        <div id="auth-login" class="auth-form">
+            <h2 class="section-heading">เข้าสู่ระบบ (Login)</h2>
+            <input type="text" id="login-user" placeholder="ชื่อผู้ใช้ (Username)">
+            <input type="password" id="login-pass" placeholder="รหัสผ่าน (Password)">
+            <button onclick="doLogin()" class="btn-primary btn-full">เข้าสู่ระบบ</button>
+        </div>
+
+        <div id="auth-register" class="auth-form hidden">
+            <h2 class="section-heading">สร้างบัญชีใหม่ (Register)</h2>
+            <input type="text" id="reg-user" placeholder="ตั้งชื่อผู้ใช้">
+            <input type="password" id="reg-pass" placeholder="ตั้งรหัสผ่าน (3 ตัวอักษรขึ้นไป)">
+            <button onclick="doRegister()" class="btn-secondary btn-full">สร้างบัญชี</button>
+        </div>
+        <div id="auth-error" class="error-msg hidden"></div>
+    </div>
+</div>
+
+<!-- ==================== SCREEN 2: CHARACTER SHEET EDITOR ==================== -->
+<div id="charsheet-screen" class="hidden">
+    <div class="cs-header">
+        <h2 class="fantasy-title cs-title">Character Sheet</h2>
+        <div class="cs-actions">
+            <button onclick="saveCharAndGoLobby()" class="btn-primary">บันทึกและเข้า Lobby</button>
+        </div>
+    </div>
+    <div class="cs-grid">
+        <!-- Left: Portrait & Bio -->
+        <div class="cs-col">
+            <div class="cs-panel">
+                <div class="cs-panel-title">PORTRAIT</div>
+                <div class="portrait-upload" onclick="document.getElementById('portrait-input').click()">
+                    <img id="portrait-preview" src="" alt="" class="hidden">
+                    <span id="portrait-placeholder" class="portrait-ph">คลิกเพื่ออัปโหลดรูป</span>
+                    <input type="file" id="portrait-input" accept="image/*" onchange="handlePortrait(event)" hidden>
+                </div>
+            </div>
+            <div class="cs-panel">
+                <div class="cs-panel-title">BIO</div>
+                <label>ชื่อตัวละคร:</label>
+                <input type="text" id="cs-name" placeholder="เช่น เป็ด">
+                <label>เผ่า / Race:</label>
+                <input type="text" id="cs-race" placeholder="เช่น มังกร">
+                <label>อาชีพ / Class:</label>
+                <input type="text" id="cs-class" placeholder="เช่น ไวกิ้ง">
+                <label>ส่วนสูง:</label>
+                <input type="text" id="cs-height" placeholder="เช่น 90cm">
+            </div>
+        </div>
+
+        <!-- Center: Stats & Abilities -->
+        <div class="cs-col">
+            <div class="cs-panel">
+                <div class="cs-panel-title">ABILITY SCORES</div>
+                <table class="stats-table">
+                    <thead><tr><th>ค่าพลัง</th><th>คะแนน</th><th>Modifier</th></tr></thead>
+                    <tbody>
+                        <tr><td>STR (ความแข็งแกร่ง)</td><td><input type="number" id="cs-str" value="10" class="stat-input" oninput="updateMod(this)"></td><td class="mod-cell" id="mod-str">+0</td></tr>
+                        <tr><td>DEX (ความคล่องแคล่ว)</td><td><input type="number" id="cs-dex" value="10" class="stat-input" oninput="updateMod(this)"></td><td class="mod-cell" id="mod-dex">+0</td></tr>
+                        <tr><td>CON (ความทนทาน)</td><td><input type="number" id="cs-con" value="10" class="stat-input" oninput="updateMod(this)"></td><td class="mod-cell" id="mod-con">+0</td></tr>
+                        <tr><td>INT (สติปัญญา)</td><td><input type="number" id="cs-int" value="10" class="stat-input" oninput="updateMod(this)"></td><td class="mod-cell" id="mod-int">+0</td></tr>
+                        <tr><td>WIS (ปัญญา)</td><td><input type="number" id="cs-wis" value="10" class="stat-input" oninput="updateMod(this)"></td><td class="mod-cell" id="mod-wis">+0</td></tr>
+                        <tr><td>CHA (เสน่ห์)</td><td><input type="number" id="cs-cha" value="10" class="stat-input" oninput="updateMod(this)"></td><td class="mod-cell" id="mod-cha">+0</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="cs-panel">
+                <div class="cs-panel-title">VITALS</div>
+                <div class="vitals-row">
+                    <div><label class="vital-label hp-label">HP</label><input type="number" id="cs-hp" value="20" class="vital-input"></div>
+                    <div><label class="vital-label sp-label">SP</label><input type="number" id="cs-sp" value="10" class="vital-input"></div>
+                </div>
+            </div>
+            <div class="cs-panel">
+                <div class="cs-panel-title">SKILLS & ABILITIES</div>
+                <label>สกิล (Skills):</label>
+                <input type="text" id="cs-skills" placeholder="เช่น fireball, firewall">
+                <label>อัลตี้ (Ultimate):</label>
+                <textarea id="cs-ultimate" rows="2" placeholder="เช่น กลายร่างเป็นมังกร..."></textarea>
+            </div>
+        </div>
+
+        <!-- Right: Story, Equipment, Inventory -->
+        <div class="cs-col">
+            <div class="cs-panel">
+                <div class="cs-panel-title">STORY</div>
+                <label>ภูมิหลัง:</label>
+                <textarea id="cs-background" rows="3" placeholder="เรื่องราวของตัวละคร..."></textarea>
+                <label>ข้อดี:</label>
+                <input type="text" id="cs-pros" placeholder="เช่น จุดไฟติด100%">
+                <label>ข้อเสีย:</label>
+                <input type="text" id="cs-cons" placeholder="เช่น พูดภาษามังกรไม่ได้">
+            </div>
+            <div class="cs-panel">
+                <div class="cs-panel-title">EQUIPMENT</div>
+                <label>อาวุธ (Weapon):</label>
+                <input type="text" id="cs-weapon" placeholder="เช่น ขวาน">
+                <label>เกราะ (Armor):</label>
+                <input type="text" id="cs-armor" placeholder="เช่น เกราะหนัง">
+            </div>
+            <div class="cs-panel">
+                <div class="cs-panel-title">INVENTORY</div>
+                <div id="cs-inventory-list" class="inv-list"></div>
+                <div class="inv-add-row">
+                    <input type="text" id="inv-add-name" placeholder="ชื่อของ">
+                    <input type="number" id="inv-add-qty" placeholder="จำนวน" value="1" min="1">
+                    <button onclick="addInvItem()" class="btn-small btn-secondary">+ เพิ่ม</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== SCREEN 3: LOBBY ==================== -->
+<div id="lobby-screen" class="hidden">
+    <div class="container">
+        <h1 class="fantasy-title" style="margin-bottom:8px;">Adventurer's Hall</h1>
+        <p class="fantasy-subtitle" style="margin-bottom:24px;">ยินดีต้อนรับ, <span id="lobby-username"></span></p>
+
         <div class="card-box altar-frame">
             <div class="corner-ornament top-left"></div>
             <div class="corner-ornament top-right"></div>
@@ -30,160 +156,142 @@
             <div class="corner-ornament bottom-right"></div>
 
             <div class="lobby-section">
-                <h2 class="section-heading">👑 สร้างห้องใหม่ (Dungeon Master)</h2>
-                <p class="section-desc">เริ่มต้นแคมเปญใหม่ในฐานะผู้ควบคุมโชคชะตา</p>
-                <button onclick="createRoom()" class="btn-primary btn-gold-trim">⚡ สร้างห้อง (Create Room)</button>
+                <h2 class="section-heading">สร้างห้องใหม่ (Dungeon Master)</h2>
+                <p class="section-desc">เริ่มแคมเปญใหม่ในฐานะผู้ควบคุมโชคชะตา</p>
+                <button onclick="createRoom()" class="btn-primary btn-full">สร้างห้อง (Create Room)</button>
             </div>
-            
-            <div class="fantasy-divider">
-                <span>✦ OR ✦</span>
-            </div>
-            
+            <div class="fantasy-divider"><span>OR</span></div>
             <div class="lobby-section">
-                <h2 class="section-heading">🛡️ เข้าร่วมห้อง (Player Adventurer)</h2>
-                <p class="section-desc">กรอกข้อมูลตัวละครเพื่อเข้าร่วมสนามรบ</p>
-                <div class="input-group">
-                    <input type="text" id="join-code" placeholder="🗝️ รหัสห้อง (เช่น DND-8492)">
-                    <input type="text" id="char-name" placeholder="👤 ชื่อตัวละคร (เช่น Valerius)">
+                <h2 class="section-heading">เข้าร่วมห้อง (Player)</h2>
+                <input type="text" id="join-code" placeholder="รหัสห้อง (เช่น A1B2C)">
+                <button onclick="joinRoom()" class="btn-secondary btn-full">เข้าสู่สมรภูมิ (Join Room)</button>
+            </div>
+            <div class="fantasy-divider"><span></span></div>
+            <button onclick="showCharSheet()" class="btn-metal btn-full">แก้ไข Character Sheet</button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== SCREEN 4: GAME ==================== -->
+<div id="game-screen" class="hidden">
+    <header class="top-nav-bar">
+        <div class="header-left">
+            <div class="room-pill"><span class="pill-label">ROOM</span><strong id="display-room-code" class="pill-value">----</strong></div>
+            <div class="role-pill"><span class="pill-label">ROLE</span><span id="display-role" class="badge">--</span></div>
+            <div id="combat-indicator" class="combat-pill hidden"><span class="pill-label">COMBAT</span><span class="combat-on">ACTIVE</span></div>
+        </div>
+        <div class="header-right">
+            <button id="my-sheet-btn" onclick="viewCharSheet(myUsername)" class="btn-metal" title="ดูข้อมูลตัวละคร">My Sheet</button>
+            <button id="sound-btn" onclick="toggleSound()" class="btn-metal" title="เปิด/ปิดเสียง">Sound: ON</button>
+            <div id="dm-save-controls" class="hidden" style="display:inline-flex;gap:6px;">
+                <button onclick="exportSave()" class="btn-metal">Save Game</button>
+                <input type="file" id="import-file" accept=".json" onchange="importSave(event)" hidden>
+                <button onclick="document.getElementById('import-file').click()" class="btn-metal">Load Save</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-grid">
+        <!-- LEFT: Dice Roller -->
+        <section class="panel panel-dice">
+            <div class="panel-header"><h3>Dice Roller</h3></div>
+            <div id="dice-lock-banner" class="dice-lock-banner hidden">ยังไม่ถึงตาของคุณ</div>
+            <div id="event-banner" class="event-banner hidden"></div>
+            <div class="dice-controls">
+                <div class="mod-container">
+                    <label for="dice-mod">Modifier (+/-):</label>
+                    <input type="number" id="dice-mod" value="0">
+                </div>
+                <div class="dice-buttons">
+                    <button onclick="roll(4)" class="die-btn">d4</button>
+                    <button onclick="roll(6)" class="die-btn">d6</button>
+                    <button onclick="roll(8)" class="die-btn">d8</button>
+                    <button onclick="roll(10)" class="die-btn">d10</button>
+                    <button onclick="roll(12)" class="die-btn">d12</button>
+                    <button onclick="roll(20)" class="die-btn d20">d20</button>
+                    <button onclick="roll(100)" class="die-btn">d100</button>
+                </div>
+            </div>
+            <div id="latest-roll" class="roll-banner"><span class="banner-hint">เลือกลูกเต๋าเพื่อเริ่มทอย</span></div>
+            <div class="log-header">Roll History</div>
+            <ul id="dice-logs" class="log-list"></ul>
+        </section>
+
+        <!-- CENTER: Combat Tracker -->
+        <section class="panel panel-combat">
+            <div class="panel-header combat-nav">
+                <h3>Battlefield & Initiative</h3>
+                <div id="dm-combat-controls" class="hidden dm-combat-btns">
+                    <button onclick="dmAction('SORT_INITIATIVE')" class="btn-metal btn-small">Sort Initiative</button>
+                    <button onclick="dmAction('NEXT_TURN')" class="btn-primary btn-small">Next Turn</button>
+                    <button onclick="dmAction('END_COMBAT')" class="btn-metal btn-small">End Combat</button>
+                </div>
+            </div>
+            <div id="entities-list" class="cards-container"></div>
+        </section>
+
+        <!-- RIGHT: DM Panel -->
+        <section id="dm-panel" class="panel panel-dm hidden">
+            <div class="panel-header"><h3>DM Command</h3></div>
+            <div class="dm-box">
+                <div class="dm-box-title">Summon Monster / NPC</div>
+                <div class="input-stack">
+                    <input type="text" id="mon-name" placeholder="ชื่อ (เช่น Goblin King)">
                     <div class="dual-inputs">
-                        <input type="number" id="char-hp" placeholder="❤️ Max HP (เช่น 25)">
-                        <input type="number" id="char-mana" placeholder="🔮 Max Mana (เช่น 10)">
+                        <input type="number" id="mon-hp" placeholder="Max HP">
+                        <input type="number" id="mon-sp" placeholder="Max SP">
                     </div>
+                    <input type="number" id="mon-init" placeholder="Initiative">
                 </div>
-                <button onclick="joinRoom()" class="btn-secondary btn-gold-trim">⚔️ เข้าสู่สมรภูมิ (Join Room)</button>
+                <button onclick="addMonster()" class="btn-primary btn-full">Summon to Battlefield</button>
+            </div>
+            <div class="dm-box" style="margin-top:14px;">
+                <div class="dm-box-title">Create Event</div>
+                <div class="input-stack">
+                    <input type="text" id="evt-name" placeholder="ชื่อ Event (เช่น ต่อรองกับพ่อค้า)">
+                    <input type="text" id="evt-desc" placeholder="รายละเอียด (เช่น ทอย CHA check)">
+                </div>
+                <button onclick="createEvent()" class="btn-secondary btn-full">Create Event</button>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- ==================== 3D DICE OVERLAY ==================== -->
+<div id="dice-overlay" class="dice-overlay hidden" onclick="closeDiceOverlay()">
+    <div class="dice-stage altar-frame" onclick="event.stopPropagation()">
+        <div id="dice-roller-title" class="dice-roller-title">Rolling...</div>
+        <div class="dice-scene">
+            <div id="dice-cube" class="dice-3d">
+                <div class="face front" id="face-front">?</div>
+                <div class="face back" id="face-back">?</div>
+                <div class="face right" id="face-right">?</div>
+                <div class="face left" id="face-left">?</div>
+                <div class="face top" id="face-top">?</div>
+                <div class="face bottom" id="face-bottom">?</div>
             </div>
         </div>
-    </div>
-
-    <!-- หน้าจอหลักในห้องเกม -->
-    <div id="game-screen" class="hidden">
-        <header class="top-nav-bar">
-            <div class="header-left">
-                <div class="room-pill">
-                    <span class="pill-label">ROOM</span>
-                    <strong id="display-room-code" class="pill-value">----</strong>
-                </div>
-                <div class="role-pill">
-                    <span class="pill-label">ROLE</span>
-                    <span id="display-role" class="badge">--</span>
-                </div>
-            </div>
-            <div class="header-right">
-                <button id="sound-btn" onclick="toggleSound()" class="btn-metal" title="เปิด/ปิดเสียง">🔊 เสียง: เปิด</button>
-                <div id="dm-save-controls" class="hidden" style="display:inline-flex; gap:6px;">
-                    <button onclick="exportSave()" class="btn-metal">💾 Save Game</button>
-                    <input type="file" id="import-file" accept=".json" onchange="importSave(event)" style="display:none">
-                    <button onclick="document.getElementById('import-file').click()" class="btn-metal">📂 Load Save</button>
-                </div>
-            </div>
-        </header>
-
-        <div class="main-grid">
-            <!-- ซ้าย: ระบบทอยลูกเต๋า 3D -->
-            <section class="panel panel-dice">
-                <div class="panel-header">
-                    <h3>🎲 ทอยลูกเต๋า 3D (Dice Roller)</h3>
-                </div>
-                <div class="dice-controls">
-                    <div class="mod-container">
-                        <label for="dice-mod">Modifier ค่าชดเชย (+/-):</label>
-                        <input type="number" id="dice-mod" value="0" placeholder="0">
-                    </div>
-                    <div class="dice-buttons">
-                        <button onclick="roll(4)" class="die-btn">d4</button>
-                        <button onclick="roll(6)" class="die-btn">d6</button>
-                        <button onclick="roll(8)" class="die-btn">d8</button>
-                        <button onclick="roll(10)" class="die-btn">d10</button>
-                        <button onclick="roll(12)" class="die-btn">d12</button>
-                        <button onclick="roll(20)" class="die-btn d20">d20</button>
-                        <button onclick="roll(100)" class="die-btn">d100</button>
-                    </div>
-                </div>
-                <div id="latest-roll" class="roll-banner">
-                    <span class="banner-hint">✨ เลือกทอยลูกเต๋าเพื่อทำนายโชคชะตา ✨</span>
-                </div>
-                <div class="log-header">📜 บันทึกประวัติการทอย</div>
-                <ul id="dice-logs" class="log-list"></ul>
-            </section>
-
-            <!-- กลาง: ลำดับการต่อสู้ & การ์ดตัวละคร -->
-            <section class="panel panel-combat">
-                <div class="panel-header combat-nav">
-                    <div>
-                        <h3>⚔️ สมรภูมิ & ลำดับการต่อสู้ (Initiative)</h3>
-                    </div>
-                    <div id="dm-combat-controls" class="hidden dm-combat-btns">
-                        <button onclick="dmAction('SORT_INITIATIVE')" class="btn-metal btn-small">⚡ เรียง Initiative</button>
-                        <button onclick="dmAction('NEXT_TURN')" class="btn-primary btn-small">เทิร์นถัดไป ⏭️</button>
-                    </div>
-                </div>
-                <div id="entities-list" class="cards-container"></div>
-            </section>
-
-            <!-- ขวา: แผงควบคุมเฉพาะ DM -->
-            <section id="dm-panel" class="panel panel-dm hidden">
-                <div class="panel-header">
-                    <h3>👑 บัญชาการ DM</h3>
-                </div>
-                <div class="dm-box">
-                    <div class="dm-box-title">✦ อัญเชิญมอนสเตอร์ / NPC ✦</div>
-                    <div class="input-stack">
-                        <label>ชื่อศัตรู / NPC:</label>
-                        <input type="text" id="mon-name" placeholder="เช่น Dragon Welp, Goblin">
-                        <div class="dual-inputs">
-                            <div>
-                                <label>Max HP:</label>
-                                <input type="number" id="mon-hp" placeholder="เช่น 45">
-                            </div>
-                            <div>
-                                <label>Max Mana:</label>
-                                <input type="number" id="mon-mana" placeholder="เช่น 20">
-                            </div>
-                        </div>
-                        <label>Initiative เริ่มต้น:</label>
-                        <input type="number" id="mon-init" placeholder="เช่น 14">
-                        <label class="reveal-checkbox-label">
-                            <input type="checkbox" id="mon-reveal-hp">
-                            <span>👁️ อนุญาตให้ผู้เล่นเห็นเลือดทันที</span>
-                        </label>
-                    </div>
-                    <button onclick="addMonster()" class="btn-primary btn-summon" style="width:100%;">⚡ อัญเชิญลงสมรภูมิ</button>
-                </div>
-            </section>
+        <div class="dice-result-details">
+            <div id="dice-calc" class="dice-calc"></div>
+            <div id="dice-total-display" class="dice-total-display">--</div>
+            <div id="dice-special-badge" class="dice-special-badge"></div>
         </div>
+        <button onclick="closeDiceOverlay()" class="btn-metal btn-close-dice">Close</button>
     </div>
+</div>
 
-    <!-- 3D Dice Roll Animation Overlay -->
-    <div id="dice-overlay" class="dice-overlay hidden" onclick="closeDiceOverlay()">
-        <div class="dice-stage altar-frame" onclick="event.stopPropagation()">
-            <div class="corner-ornament top-left"></div>
-            <div class="corner-ornament top-right"></div>
-            <div class="corner-ornament bottom-left"></div>
-            <div class="corner-ornament bottom-right"></div>
-
-            <div id="dice-roller-title" class="dice-roller-title">Adventurer ทอย d20</div>
-            
-            <div class="dice-scene">
-                <div id="dice-cube" class="dice-3d">
-                    <div class="face front" id="face-front">?</div>
-                    <div class="face back" id="face-back">?</div>
-                    <div class="face right" id="face-right">?</div>
-                    <div class="face left" id="face-left">?</div>
-                    <div class="face top" id="face-top">?</div>
-                    <div class="face bottom" id="face-bottom">?</div>
-                </div>
-            </div>
-
-            <div id="dice-result-details" class="dice-result-details">
-                <div id="dice-calc" class="dice-calc"></div>
-                <div id="dice-total-display" class="dice-total-display">--</div>
-                <div id="dice-special-badge" class="dice-special-badge"></div>
-            </div>
-            
-            <button onclick="closeDiceOverlay()" class="btn-close-dice btn-metal">ปิดหน้าต่าง (หรือคลิกด้านนอก)</button>
-        </div>
+<!-- ==================== CHARACTER VIEW MODAL ==================== -->
+<div id="charview-modal" class="modal-overlay hidden" onclick="closeCharModal()">
+    <div class="modal-content altar-frame" onclick="event.stopPropagation()">
+        <div class="corner-ornament top-left"></div>
+        <div class="corner-ornament top-right"></div>
+        <div class="corner-ornament bottom-left"></div>
+        <div class="corner-ornament bottom-right"></div>
+        <button class="modal-close btn-metal" onclick="closeCharModal()">X</button>
+        <div id="charview-body" class="charview-body"></div>
     </div>
+</div>
 
-    <script src="client.js"></script>
+<script src="client.js"></script>
 </body>
 </html>
